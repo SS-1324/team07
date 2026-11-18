@@ -1,0 +1,2 @@
+# 브라우저에서 직접 열 수 없게 막는다 (PHP의 require로만 사용)
+Require all denied
