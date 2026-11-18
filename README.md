@@ -87,15 +87,13 @@ team07/
 | 분석 4 윈도우 함수 | `pages/analysis/window.php` |
 | PreparedStatement | `backend/db.php` 의 `db_all`, `db_one`, `db_exec` |
 | 세션 | `backend/session.php`, `actions/watchlist_toggle.php`, `pages/players/watchlist.php` |
-| 트랜잭션 | `actions/contract_add.php`, `actions/contract_edit.php`, `actions/contract_delete.php` |
+| 트랜잭션 | `actions/contract_add.php` |
 | 설정 변수 | `config/config.php` |
 
 ## 규칙
 
 - 사용자 입력을 SQL 문자열에 직접 이어 붙이지 않는다. `?` 와 `$params` 로 넘긴다. 정렬 열처럼 `?` 로 못 넘기는 값은 `input_choice()` 로 허용 목록을 통과시킨다.
 - 화면에 출력하는 값은 전부 `h()` 로 감싼다.
-- POST 폼에는 `<?= csrf_field() ?>` 를 넣는다. 처리 파일은 첫 줄에서 `require_post()` 로 검사한다.
-- 백엔드 함수 이름·인자·돌려주는 키는 `docs/BACKEND_API.md` 에 정리되어 있다.
 - 주소는 `url('pages/...')` 로 만든다. `/team07/...` 을 직접 쓰지 않는다.
 - 계산·정렬·집계는 JavaScript가 아니라 SQL에서 한다.
 - 각 PHP 파일 맨 위 `담당:` 주석에 본인 이름을 적는다 (과제 평가 항목).
