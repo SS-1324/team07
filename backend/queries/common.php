@@ -102,6 +102,12 @@ function postseason_label(?string $code): string
     return $labels[$code ?? 'NONE'] ?? (string) $code;
 }
 
+// 연도 범위: 시작이 끝보다 크게 들어오면 (화면에서 거꾸로 고른 경우) 바꿔서 돌려준다
+function year_range(int $from, int $to): array
+{
+    return $from <= $to ? [$from, $to] : [$to, $from];
+}
+
 // IN (?, ?, ...) 자리표시자를 개수만큼 만든다
 function sql_placeholders(int $count): string
 {

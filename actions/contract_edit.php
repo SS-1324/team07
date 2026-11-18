@@ -21,14 +21,15 @@ if (!$old) {
 }
 $back = 'pages/contracts/edit.php?contract_id=' . $contractId;
 
+// 폼에 없는 칸은 기존 값을 유지한다 (칸이 있는데 비워 보내면 그 값으로 바뀐다)
 [$data, $errors] = contract_validate([
     'player_id'        => input_str('player_id', $old['player_id']),
-    'from_team_id'     => input_str('from_team_id'),
-    'to_team_id'       => input_str('to_team_id'),
-    'start_year'       => input_str('start_year'),
-    'end_year'         => input_str('end_year'),
-    'total_value'      => input_str('total_value'),
-    'guaranteed_value' => input_str('guaranteed_value'),
+    'from_team_id'     => input_str('from_team_id', (string) ($old['from_team_id'] ?? '')),
+    'to_team_id'       => input_str('to_team_id', $old['to_team_id']),
+    'start_year'       => input_str('start_year', (string) $old['start_year']),
+    'end_year'         => input_str('end_year', (string) $old['end_year']),
+    'total_value'      => input_str('total_value', (string) $old['total_value']),
+    'guaranteed_value' => input_str('guaranteed_value', (string) $old['guaranteed_value']),
 ]);
 if ($errors) {
     flash_set(implode(' ', $errors), 'error');

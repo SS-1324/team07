@@ -49,6 +49,7 @@ function aggregate_group_options(): array
 //   cost_per_war : 계약 기간 중 지급액(AAV × 기록 시즌 수) ÷ WAR 합. WAR 합이 0 이하이거나 없으면 null
 function analysis_aggregate(string $leagueId, int $yearFrom, int $yearTo, array $groupBy, string $role = ''): array
 {
+    [$yearFrom, $yearTo] = year_range($yearFrom, $yearTo);
     $options = aggregate_group_options();
     $groupBy = array_slice(array_values(array_filter($groupBy, fn ($g) => isset($options[$g]))), 0, 3);
     if (!$groupBy) {
@@ -115,6 +116,7 @@ function analysis_aggregate(string $leagueId, int $yearFrom, int $yearTo, array 
 //   소계 행은 team_id 또는 year_id 가 null 이다. 전체 합계 행은 리그끼리 통화가 달라 만들지 않는다.
 function analysis_rollup(string $leagueId, int $yearFrom, int $yearTo, string $level = 'team', string $teamId = ''): array
 {
+    [$yearFrom, $yearTo] = year_range($yearFrom, $yearTo);
     $sql = 'SELECT *
               FROM (
                     SELECT t.league_id, ts.team_id, ts.year_id,
@@ -237,7 +239,7 @@ function ranking_base_sql(array $f): array
                   JOIN player_role r    ON r.player_id = c.player_id
                   JOIN contract_perf cp ON cp.contract_id = c.contract_id
                  WHERE ' . $validSql . ' AND c.start_year BETWEEN ? AND ?';
-    $params = [(int) $f['year_from'], (int) $f['year_to']];
+    $params = year_range((int) ($f['year_from'] ?? 2016), (int) ($f['year_to'] ?? 2024));
 
     if (($f['league'] ?? '') !== '') {
         $sql .= ' AND tt.league_id = ?';
@@ -316,6 +318,7 @@ function analysis_ranking_quartiles(array $f): array
 //             contract_id, contract_season(계약 몇 년차, 계약 기간 밖이면 null)
 function analysis_window(string $playerId, int $yearFrom, int $yearTo, string $metric = 'war', int $span = 3): array
 {
+    [$yearFrom, $yearTo] = year_range($yearFrom, $yearTo);
     $values = [
         'war' => ['y.war', 'DESC'],
         'ops' => ['ROUND(y.ops_pa / NULLIF(y.pa_ops, 0), 3)', 'DESC'],

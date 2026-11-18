@@ -4,7 +4,7 @@
 // 과제 요건: INSERT + 트랜잭션
 // 계약 등록은 세 테이블을 함께 바꾼다. 하나라도 실패하면 전부 되돌린다(rollBack).
 //   1) fa_contracts          INSERT
-//   2) players               current_team_id 를 영입팀으로 UPDATE
+//   2) players               current_team_id 를 영입팀으로 UPDATE (더 늦은 계약이 이미 있으면 그대로 둠)
 //   3) team_seasons          계약 기간에 해당하는 영입팀 시즌의 fa_payroll 에 AAV 를 더함
 // 순서: ① POST·CSRF 확인 → ② 입력 검사 → ③ 트랜잭션 처리 → ④ 화면으로 이동
 
@@ -37,7 +37,7 @@ try {
     $pdo->beginTransaction();
 
     $contractId = contract_insert($data);
-    player_set_team($data['player_id'], $data['to_team_id']);
+    player_set_team($data['player_id'], $data['to_team_id'], $data['start_year']);
     $seasons = payroll_apply($data['to_team_id'], $data['start_year'], $data['end_year'], $data['aav']);
 
     $pdo->commit();

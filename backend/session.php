@@ -4,6 +4,12 @@
 // PHP 세션: 관심 선수 목록(watchlist)과 한 번만 보여줄 알림 메시지(flash)를 저장한다.
 
 if (session_status() === PHP_SESSION_NONE) {
+    // 세션 쿠키: 자바스크립트에서 읽지 못하게(httponly), 다른 사이트에서 온 요청에는 안 붙게(SameSite=Lax)
+    session_set_cookie_params([
+        'path'     => BASE_URL . '/',
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
 

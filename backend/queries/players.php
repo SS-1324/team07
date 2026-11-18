@@ -33,9 +33,11 @@ function players_search(array $filters, int $limit = 200): array
         $params[] = '%' . $name . '%';
         $params[] = '%' . $name . '%';
     }
-    if (($filters['league'] ?? '') !== '') {
-        // 선수의 리그 = player_id 규칙 (KBO 는 k_ 로 시작)
-        $sql .= ($filters['league'] === 'KBO') ? " AND p.player_id LIKE 'k\\_%'" : " AND p.player_id NOT LIKE 'k\\_%'";
+    // 선수의 리그 = player_id 규칙 (KBO 는 k_ 로 시작). 'MLB'/'KBO' 가 아니면 조건을 붙이지 않는다
+    if (($filters['league'] ?? '') === 'KBO') {
+        $sql .= " AND p.player_id LIKE 'k\\_%'";
+    } elseif (($filters['league'] ?? '') === 'MLB') {
+        $sql .= " AND p.player_id NOT LIKE 'k\\_%'";
     }
     if (($filters['role'] ?? '') !== '') {
         $sql .= ' AND r.role = ?';

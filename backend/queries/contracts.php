@@ -131,12 +131,13 @@ function contract_validate(array $in): array
     if ($total === false) {
         $errors[] = '계약 총액은 1 이상의 정수로 입력하세요.';
     }
-    $guaranteed = ($data['guaranteed_value'] === null || $data['guaranteed_value'] === '')
+    $guaranteedBlank = ($data['guaranteed_value'] === null || $data['guaranteed_value'] === '');
+    $guaranteed = $guaranteedBlank
         ? $total
         : filter_var($data['guaranteed_value'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
-    if ($guaranteed === false) {
+    if (!$guaranteedBlank && $guaranteed === false) {
         $errors[] = '보장액은 0 이상의 정수로 입력하세요.';
-    } elseif ($total !== false && $guaranteed > $total) {
+    } elseif ($total !== false && $guaranteed !== false && $guaranteed > $total) {
         $errors[] = '보장액은 총액보다 클 수 없습니다.';
     }
 
@@ -209,9 +210,15 @@ function payroll_apply(string $teamId, int $startYear, int $endYear, int $delta)
 }
 
 // 선수의 현재 소속을 영입팀으로 바꾼다 (계약 등록 트랜잭션의 일부)
-function player_set_team(string $playerId, string $teamId): int
+// 단, 이 계약보다 늦게 시작하는 계약이 이미 있으면 (과거 계약을 뒤늦게 등록하는 경우) 바꾸지 않는다.
+function player_set_team(string $playerId, string $teamId, int $startYear): int
 {
-    return db_exec('UPDATE players SET current_team_id = ? WHERE player_id = ?', [$teamId, $playerId]);
+    return db_exec(
+        'UPDATE players SET current_team_id = ?
+          WHERE player_id = ?
+            AND NOT EXISTS (SELECT 1 FROM fa_contracts c WHERE c.player_id = ? AND c.start_year > ?)',
+        [$teamId, $playerId, $playerId, $startYear]
+    );
 }
 
 // 계약 등록·수정 화면의 선수 select 용 (전체 선수)

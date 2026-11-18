@@ -63,6 +63,8 @@
 | 계약 삭제 | `actions/contract_delete.php` | `contract_id` |
 
 - 계약 연수·AAV 는 **입력받지 않음** (서버 계산).
+- 수정 폼에서 **칸 자체를 빼면 기존 값 유지**, 칸을 비워서 보내면 빈 값으로 바뀜 (원소속팀은 NULL, 보장액은 총액).
+- 등록 시 선수 현재 소속을 영입팀으로 바꾸지만, 그 선수에게 더 늦게 시작하는 계약이 이미 있으면(과거 계약을 뒤늦게 등록) 바꾸지 않음.
 - 금액 입력 단위: 영입팀이 MLB 면 달러, KBO 면 만원. 입력칸 옆에 단위를 표시해 주세요.
 - 등록·수정·삭제는 모두 **트랜잭션**: 계약 + 구단 FA 지출(`team_seasons.fa_payroll`) (+ 등록은 선수 현재 소속)을 한 번에 바꿈.
 - 등록 실패 시 입력값이 세션에 남음: `filters_recall('contract_add')` 로 폼을 다시 채울 수 있음.
@@ -77,7 +79,7 @@
 | 3. 효율 순위 | `analysis_ranking($f)` / `analysis_ranking_quartiles($f)` | 리그, 연도 범위, 지표 select, 순위 범위 라디오 (`year` 연도별 / `all` 전체), 투수/타자, 포지션, 최소 총액 입력, 상위 N 숫자 입력 |
 | 4. 시즌 추이 | `analysis_window($playerId, $yearFrom, $yearTo, $metric, $span)` | 선수 select, 연도 범위, 지표 select, 이동평균 2/3년 라디오 |
 
-연도 select 범위는 `contract_year_range()` (min_year, max_year) 또는 `seasons_all()`.
+연도 select 범위는 `contract_year_range()` (min_year, max_year) 또는 `seasons_all()`. 시작·끝 연도를 거꾸로 골라도 함수가 알아서 바꿔 처리함.
 
 ### 돌려주는 키
 
