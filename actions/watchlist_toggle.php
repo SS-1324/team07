@@ -6,18 +6,24 @@
 
 require_once __DIR__ . '/../backend/bootstrap.php';
 
-// ① POST 로 온 요청만 처리한다
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    redirect('pages/players/search.php');
-}
-
-// ② 입력 검사
-$playerId = input_str('player_id');
 // 돌아갈 화면은 허용 목록에서만 고른다 (임의 주소로 보내지 않기 위해)
-$back = input_choice('back', ['pages/players/search.php', 'pages/players/watchlist.php'], 'pages/players/search.php');
+$back = input_choice(
+    'back',
+    ['pages/players/search.php', 'pages/players/watchlist.php', 'pages/players/compare.php', 'pages/analysis/window.php'],
+    'pages/players/search.php'
+);
 
-if ($playerId === '') {
+// ① POST + CSRF 토큰 확인 (폼에 csrf_field() 를 넣어야 한다)
+require_post($back);
+
+// ② 입력 검사: DB 에 있는 선수만 담는다
+$playerId = input_str('player_id');
+if ($playerId === '' || !db_one('SELECT 1 AS ok FROM players WHERE player_id = ?', [$playerId])) {
     flash_set('선수를 선택하지 않았습니다.', 'error');
+    redirect($back);
+}
+if (!watchlist_has($playerId) && count(watchlist_ids()) >= 10) {
+    flash_set('관심 선수는 10명까지 담을 수 있습니다.', 'error');
     redirect($back);
 }
 

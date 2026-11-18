@@ -40,6 +40,34 @@ function input_choice(string $key, array $allowed, string $default): string
     return in_array($value, $allowed, true) ? $value : $default;
 }
 
+// 체크박스 여러 개 (name="group[]"): 허용 목록에 있는 값만, 순서를 지켜 돌려준다
+function input_choices(string $key, array $allowed): array
+{
+    $values = $_POST[$key] ?? $_GET[$key] ?? [];
+    if (!is_array($values)) {
+        $values = [$values];
+    }
+    $picked = [];
+    foreach ($values as $value) {
+        if (is_string($value) && in_array($value, $allowed, true) && !in_array($value, $picked, true)) {
+            $picked[] = $value;
+        }
+    }
+    return $picked;
+}
+
+// 처리 파일(actions) 첫 줄에서 호출: POST 가 아니거나 CSRF 토큰이 틀리면 $back 화면으로 돌려보낸다
+function require_post(string $back): void
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect($back);
+    }
+    if (!csrf_valid()) {
+        flash_set('요청이 만료되었습니다. 화면을 새로고침한 뒤 다시 시도하세요.', 'error');
+        redirect($back);
+    }
+}
+
 // 금액 표시: USD는 달러, KRW는 만원 단위로 저장되어 있다
 function format_money($amount, string $currency = 'USD'): string
 {
@@ -47,7 +75,10 @@ function format_money($amount, string $currency = 'USD'): string
         return '—';
     }
     if ($currency === 'KRW') {
-        return number_format((float) $amount) . '만원';
+        // 만원 단위 저장값. 1억(=10,000만원) 이상은 억원으로 보여준다
+        return abs((float) $amount) >= 10000
+            ? number_format($amount / 10000, 1) . '억원'
+            : number_format((float) $amount) . '만원';
     }
     return '$' . number_format($amount / 1000000, 1) . 'M';
 }

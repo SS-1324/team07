@@ -3,6 +3,8 @@
 // 담당: 백엔드
 // 구단 관련 SELECT. 화면(pages)은 이 함수들이 돌려주는 배열만 사용한다.
 
+require_once __DIR__ . '/common.php';
+
 // 필터 select에 넣을 리그 목록
 function leagues_all(): array
 {
@@ -15,6 +17,30 @@ function seasons_all(): array
     return array_column(
         db_all('SELECT DISTINCT year_id FROM team_seasons ORDER BY year_id DESC'),
         'year_id'
+    );
+}
+
+// 필터 select에 넣을 구단 목록. $leagueId 가 '' 이면 전체 (담당: 백엔드 신수연)
+// 돌려주는 키: team_id, team_name, league_id, sub_league
+function teams_all(string $leagueId = ''): array
+{
+    $sql = 'SELECT team_id, team_name, league_id, sub_league FROM teams';
+    $params = [];
+    if ($leagueId !== '') {
+        $sql .= ' WHERE league_id = ?';
+        $params[] = $leagueId;
+    }
+    return db_all($sql . ' ORDER BY league_id DESC, team_name', $params);
+}
+
+// 구단 한 곳 (없으면 null) (담당: 백엔드 신수연)
+function team_find(string $teamId): ?array
+{
+    return db_one(
+        'SELECT t.team_id, t.team_name, t.league_id, t.sub_league, t.city, l.currency
+           FROM teams t JOIN leagues l ON l.league_id = t.league_id
+          WHERE t.team_id = ?',
+        [$teamId]
     );
 }
 
