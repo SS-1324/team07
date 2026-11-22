@@ -1,22 +1,4 @@
 <?php
-// pages/players/edit.php
-// 담당: 프론트 (이름) / 쿼리: 백엔드 (이름)
-// 과제 요건: UPDATE
-// 만드는 방법은 pages/teams/list.php 를 따라 한다. ① 입력 읽기 → ② 백엔드 함수 호출 → ③ HTML 출력
-
-require_once __DIR__ . '/../../backend/bootstrap.php';
-
-$pageTitle  = '선수 정보 수정';
-$activeMenu = 'players';
-require __DIR__ . '/../../layout/header.php';
-?>
-
-<section class="panel todo">
-    <p>아직 만들지 않은 화면입니다. (과제 요건: UPDATE)</p>
-    <ul>
-        <li>주소의 player_id 로 기존 값을 불러와 폼에 채운다</li>
-        <li>폼은 actions/player_edit.php 로 POST 한다</li>
-    </ul>
-</section>
-
-<?php require __DIR__ . '/../../layout/footer.php'; ?>
+require_once __DIR__.'/../../layout/ui.php';
+$p=player_find(input_str('player_id'));if(!$p)ui_missing();ui_start('선수 정보 수정','players',$p['player_name']);echo '<form class="panel edit-form" method="post" action="'.h(url('actions/player_edit.php')).'">'.csrf_field().'<input type="hidden" name="player_id" value="'.h($p['player_id']).'">';foreach(['name_first'=>'영문 이름','name_last'=>'영문 성','name_kor'=>'한글 이름'] as $k=>$label)ui_input($k,$label,$p[$k],'text','maxlength="'.($k==='name_kor'?20:40).'"');ui_input('birth_date','생년월일',$p['birth_date'],'date');ui_select('primary_pos','포지션',[''=>'미지정']+position_options(),$p['primary_pos']);ui_select('bats','타석',[''=>'미지정']+hand_options(),$p['bats']);ui_select('throws','투구 손',[''=>'미지정']+hand_options(),$p['throws']);ui_select('current_team_id','현재 구단',ui_teams(),$p['current_team_id']);echo '<div class="form-actions"><button class="primary">저장</button>'.ui_link('pages/players/detail.php','취소',['player_id'=>$p['player_id']],'secondary').'</div></form>';
+ui_end();

@@ -1,22 +1,4 @@
 <?php
-// pages/contracts/edit.php
-// 담당: 프론트 (이름) / 쿼리: 백엔드 (이름)
-// 과제 요건: UPDATE
-// 만드는 방법은 pages/teams/list.php 를 따라 한다. ① 입력 읽기 → ② 백엔드 함수 호출 → ③ HTML 출력
-
-require_once __DIR__ . '/../../backend/bootstrap.php';
-
-$pageTitle  = 'FA 계약 수정';
-$activeMenu = 'contracts';
-require __DIR__ . '/../../layout/header.php';
-?>
-
-<section class="panel todo">
-    <p>아직 만들지 않은 화면입니다. (과제 요건: UPDATE)</p>
-    <ul>
-        <li>주소의 contract_id 로 기존 값을 불러와 폼에 채운다</li>
-        <li>폼은 actions/contract_edit.php 로 POST 한다</li>
-    </ul>
-</section>
-
-<?php require __DIR__ . '/../../layout/footer.php'; ?>
+require_once __DIR__.'/../../layout/ui.php';
+$contract=contract_find(input_int('contract_id',0));if(!$contract)ui_missing();$editing=true;ui_start('FA 계약 수정','contracts',$contract['player_name']);require __DIR__.'/../../layout/contract-form.php';
+ui_end();

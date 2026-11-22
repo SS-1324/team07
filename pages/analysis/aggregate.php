@@ -1,23 +1,4 @@
 <?php
-// pages/analysis/aggregate.php
-// 담당: 프론트 (이름) / 쿼리: 백엔드 (이름)
-// 과제 요건: 고급 분석 1 — 여러 열 기준 GROUP BY 집계
-// 만드는 방법은 pages/teams/list.php 를 따라 한다. ① 입력 읽기 → ② 백엔드 함수 호출 → ③ HTML 출력
-
-require_once __DIR__ . '/../../backend/bootstrap.php';
-
-$pageTitle  = '그룹별 집계';
-$activeMenu = 'aggregate';
-require __DIR__ . '/../../layout/header.php';
-?>
-
-<section class="panel todo">
-    <p>아직 만들지 않은 화면입니다. (과제 요건: 고급 분석 1 — 여러 열 기준 GROUP BY 집계)</p>
-    <ul>
-        <li>입력: 리그, 시작 연도 범위, 묶을 기준 체크박스(포지션, 계약기간 구간, 영입팀)</li>
-        <li>결과: 계약 수, AVG/MAX/MIN(AAV), SUM(WAR), WAR당 금액</li>
-        <li>쿼리 함수는 backend/queries/analysis.php 의 analysis_aggregate()</li>
-    </ul>
-</section>
-
-<?php require __DIR__ . '/../../layout/footer.php'; ?>
+require_once __DIR__.'/../../layout/ui.php';
+$f=ui_filters('aggregate');$options=aggregate_group_options();$groups=input_str('submitted')==='1'?input_choices('group',array_keys($options)):($f['group']??['role','years_band']);$groups=array_slice($groups?:['role'],0,3);$f['group']=$groups;filters_remember('aggregate',$f);$rows=analysis_aggregate($f['league'],$f['year_from'],$f['year_to'],$groups,$f['role']);ui_start('그룹별 투자 집계','aggregate','최대 세 기준을 조합해 계약의 규모와 성과를 확인하세요.');echo '<form method="get"><input type="hidden" name="submitted" value="1"><div class="filterbar">';ui_range($f);ui_select('role','역할',[''=>'전체']+role_options(),$f['role']);ui_submit('pages/analysis/aggregate.php');echo '</div><fieldset class="group-options"><legend>집계 기준 (1~3개)</legend>';foreach($options as $k=>$v)echo '<label><input type="checkbox" name="group[]" value="'.h($k).'" '.(in_array($k,$groups,true)?'checked':'').'>'.h($v[0]).'</label>';echo '</fieldset></form>';ui_note('연도는 계약 시작 연도입니다. WAR당 비용은 기록이 있는 계약 시즌의 추정 지급액 ÷ WAR입니다. KBO WAR·나이·포지션은 미확보입니다.');$cols=['league_id'=>'리그'];foreach($groups as $g)$cols[$g]=$options[$g][0];$cols+=['contracts'=>'계약 수','avg_years'=>ui_number('avg_years','평균 기간',1),'avg_aav'=>ui_money('avg_aav','평균 AAV'),'min_aav'=>ui_money('min_aav','최소 AAV'),'max_aav'=>ui_money('max_aav','최대 AAV'),'sum_total'=>ui_money('sum_total','총 계약액'),'seasons'=>'기록 시즌 수','war'=>ui_number('war','WAR 합',1),'war_per_season'=>ui_number('war_per_season','시즌당 WAR',2),'ops'=>ui_number('ops','OPS',3),'era'=>ui_number('era','ERA',2),'cost_per_war'=>ui_money('cost_per_war','WAR당 비용')];ui_table('복합 집계',$rows,$cols);
+ui_end();

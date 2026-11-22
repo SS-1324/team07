@@ -1,22 +1,6 @@
 <?php
-// pages/players/search.php
-// 담당: 프론트 (이름) / 쿼리: 백엔드 (이름)
-// 과제 요건: SELECT, 세션
-// 만드는 방법은 pages/teams/list.php 를 따라 한다. ① 입력 읽기 → ② 백엔드 함수 호출 → ③ HTML 출력
-
-require_once __DIR__ . '/../../backend/bootstrap.php';
-
-$pageTitle  = '선수 검색';
-$activeMenu = 'players';
-require __DIR__ . '/../../layout/header.php';
-?>
-
-<section class="panel todo">
-    <p>아직 만들지 않은 화면입니다. (과제 요건: SELECT, 세션)</p>
-    <ul>
-        <li>필터: 이름, 포지션, 현재 소속 구단</li>
-        <li>행마다 관심 선수 버튼(actions/watchlist_toggle.php 로 POST)과 정보 수정 링크</li>
-    </ul>
-</section>
-
-<?php require __DIR__ . '/../../layout/footer.php'; ?>
+require_once __DIR__.'/../../layout/ui.php';
+$f=['league'=>input_choice('league',['KBO','MLB'],'KBO'),'name'=>input_str('name'),'role'=>input_choice('role',['','P','B'],''),'position'=>input_choice('position',array_merge([''],array_keys(position_options())),''),'team'=>input_str('team')];if($f['league']==='KBO')$f['position']='';$rows=players_search($f,500);ui_start('선수 검색·성적','players','선수 이름을 눌러 계약과 시즌별 성적을 확인하세요.');
+echo '<form class="filterbar" method="get">';ui_league($f['league']);ui_input('name','선수 이름',$f['name'],'search');ui_select('role','역할',[''=>'전체']+role_options(),$f['role']);if($f['league']==='MLB')ui_select('position','포지션',[''=>'전체']+position_options(),$f['position']);ui_select('team','현재 구단',ui_teams($f['league']),$f['team']);ui_submit('pages/players/search.php');echo '</form>';ui_note('최대 500명 조회. KBO는 상세 포지션·생년월일·WAR이 미확보되어 —로 표시됩니다.');
+ui_table('선수 목록',$rows,['watch'=>['관심',fn($r)=>ui_watch($r['player_id'])],'player_name'=>['선수','ui_player'],'team_name'=>'현재 구단','role'=>['역할',fn($r)=>h(role_options()[$r['role']]??'—')],'primary_pos'=>'포지션','contracts'=>'FA 계약 수','last_year'=>'최근 기록','edit'=>['관리',fn($r)=>ui_link('pages/players/edit.php','정보 수정',['player_id'=>$r['player_id']])]]);
+ui_end();
