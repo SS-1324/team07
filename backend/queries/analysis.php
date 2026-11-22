@@ -207,11 +207,40 @@ function analysis_aggregate(string $leagueId, int $yearFrom, int $yearTo, array 
 //             seasons, fa_payroll, wins, losses, win_pct, postseason_cnt, payroll_per_win, contracts_signed
 //   소계 행은 team_id 또는 year_id 가 null 이다. 전체 합계 행은 리그끼리 통화가 달라 만들지 않는다.
 //   payroll_per_win 은 단축 시즌 승수를 정규 시즌으로 환산해서 나눈다 (wins 는 기록 그대로).
+// 연도 행에만 붙는 순위 변화 키 (FA 영입 전후 비교, 리그·구단 소계 행은 모두 null):
+//   league_rank      : 그 해 순위 (MLB 는 AL/NL 안, KBO 는 리그 전체)
+//   rank_group_size  : 순위를 매긴 팀 수 (MLB 15, KBO 10, KBO 2014 는 9)
+//   rank_pct         : 순위 백분위 = (순위 - 1) ÷ (팀 수 - 1) × 100. 0 = 1위, 100 = 꼴찌.
+//                      팀 수가 다른 해(KBO 2014 → 2015)도 같은 기준으로 비교하려고 쓴다
+//   prev_year, prev_rank, prev_rank_pct : LAG 로 구한 그 구단의 바로 앞 기록 시즌 값
+//   rank_pct_change  : prev_rank_pct - rank_pct. 양수면 순위가 올랐다 (그 해 contracts_signed 와 같이 본다)
 function analysis_rollup(string $leagueId, int $yearFrom, int $yearTo, string $level = 'team', string $teamId = ''): array
 {
     [$yearFrom, $yearTo] = year_range($yearFrom, $yearTo);
-    $sql = 'WITH ' . sql_cte_season_scale() . '
-            SELECT *
+    // 순위 변화는 ROLLUP 과 같은 SELECT 에 윈도우 함수를 섞지 않고 CTE 에서 먼저 계산한다.
+    // 연도 범위 밖의 해까지 포함해 계산해야 범위 첫 해에도 전년 값이 나온다.
+    $sql = 'WITH ' . sql_cte_season_scale() . ',
+            rank_base AS (
+                SELECT ts.team_id, ts.year_id, ts.league_rank,
+                       COUNT(*) OVER (PARTITION BY t.league_id, t.sub_league, ts.year_id) AS rank_group_size
+                  FROM team_seasons ts
+                  JOIN teams t ON t.team_id = ts.team_id
+            ),
+            rank_scaled AS (
+                SELECT rb.*,
+                       ROUND(100 * (rb.league_rank - 1) / NULLIF(rb.rank_group_size - 1, 0), 1) AS rank_pct
+                  FROM rank_base rb
+            ),
+            rank_change AS (
+                SELECT rp.*,
+                       LAG(rp.year_id)     OVER (PARTITION BY rp.team_id ORDER BY rp.year_id) AS prev_year,
+                       LAG(rp.league_rank) OVER (PARTITION BY rp.team_id ORDER BY rp.year_id) AS prev_rank,
+                       LAG(rp.rank_pct)    OVER (PARTITION BY rp.team_id ORDER BY rp.year_id) AS prev_rank_pct
+                  FROM rank_scaled rp
+            )
+            SELECT r.*, rc.league_rank, rc.rank_group_size, rc.rank_pct,
+                   rc.prev_year, rc.prev_rank, rc.prev_rank_pct,
+                   ROUND(rc.prev_rank_pct - rc.rank_pct, 1) AS rank_pct_change
               FROM (
                     SELECT t.league_id, ts.team_id, ts.year_id,
                            MAX(t.team_name)                                        AS team_name,
@@ -243,8 +272,10 @@ function analysis_rollup(string $leagueId, int $yearFrom, int $yearTo, string $l
         $params[] = $teamId;
     }
 
+    // 소계 행은 year_id 가 null 이라 rank_change 와 이어지지 않는다 → 순위 키가 연도 행에만 붙는다
     $sql .= '        GROUP BY t.league_id, ts.team_id, ts.year_id WITH ROLLUP
                    ) r
+              LEFT JOIN rank_change rc ON rc.team_id = r.team_id AND rc.year_id = r.year_id
              WHERE r.league_id IS NOT NULL';
 
     // 보여줄 단계: 허용 목록에서 고른 조건만 붙인다
