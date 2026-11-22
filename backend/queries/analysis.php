@@ -325,6 +325,7 @@ function ranking_base_sql(array $f): array
                        c.start_year, c.end_year, c.years, c.total_value, c.aav,
                        r.role, p.primary_pos,
                        cp.seasons, cp.paid_seasons, cp.paid, ROUND(cp.war, 1) AS war, ROUND(cp.war_adj, 1) AS war_adj,
+                       ROUND(cp.war_adj / NULLIF(cp.paid_seasons, 0), 2) AS war_per_season,
                        ROUND(cp.ops, 3) AS ops, ROUND(cp.era, 2) AS era,
                        ' . $valueSql . ' AS metric_value
                   FROM fa_contracts c
@@ -361,15 +362,32 @@ function ranking_base_sql(array $f): array
     $sql .= ' AND ' . $seasonCol . ' >= ?';
     $params[] = max(1, min(10, (int) ($f['min_seasons'] ?? 2)));
 
+    // good / bad 계약 판정 (고른 순위 지표와 상관없이 항상 WAR 기준, WAR 이 없는 KBO 는 null)
+    //   wps_pct : 리그 안에서 시즌당 WAR(war_per_season) 이 상위 몇 % 인지 (CUME_DIST, 같은 값은 같은 %)
+    //   grade   : 'bad'  = 환산 WAR 합(war_adj, 소수 첫째 자리) 0 이하
+    //             'good' = bad 가 아니고 wps_pct 25 이하 (리그 안 시즌당 WAR 상위 25%)
+    //             null   = 그 사이, 또는 WAR 이 없는 리그
+    //   비교 대상은 이 화면의 조건(연도·역할·포지션·최소 총액·최소 시즌)을 통과한 같은 리그 계약이다.
     $sql .= '),
-            ranked AS (
+            ranked0 AS (
                 SELECT base.*,
                        RANK()       OVER (PARTITION BY ' . $partition . ' ORDER BY ' . $orderSql . ') AS metric_rank,
                        DENSE_RANK() OVER (PARTITION BY ' . $partition . ' ORDER BY aav DESC)                   AS aav_rank,
                        NTILE(4)     OVER (PARTITION BY league_id ORDER BY aav DESC)                             AS aav_quartile,
                        ROUND(100 * PERCENT_RANK() OVER (PARTITION BY ' . $partition . ' ORDER BY ' . $orderSql . '), 1) AS metric_pct,
-                       COUNT(*)     OVER (PARTITION BY ' . $partition . ')                                     AS group_size
+                       COUNT(*)     OVER (PARTITION BY ' . $partition . ')                                     AS group_size,
+                       CASE WHEN war_per_season IS NOT NULL
+                            THEN ROUND(100 * CUME_DIST() OVER (PARTITION BY league_id ORDER BY war_per_season DESC), 1)
+                       END                                                                                       AS wps_pct
                   FROM base
+            ),
+            ranked AS (
+                SELECT ranked0.*,
+                       CASE WHEN wps_pct IS NULL THEN NULL
+                            WHEN war_adj <= 0    THEN \'bad\'
+                            WHEN wps_pct <= 25   THEN \'good\'
+                       END AS grade
+                  FROM ranked0
             )';
     return [$sql, $params];
 }
@@ -384,7 +402,9 @@ function ranking_base_sql(array $f): array
 //             paid(AAV × paid_seasons), war, war_adj(단축 시즌 환산 WAR), ops, era,
 //             metric_value(순위 기준값, war 지표는 paid ÷ war_adj. war_adj 가 0 이하이면 null 이고 순위는 맨 뒤쪽),
 //             metric_rank(그룹 안 순위), aav_rank(그룹 안 몸값 순위),
-//             aav_quartile(리그 안 몸값 4분위, 1=최고액), metric_pct(상위 몇 %, 0=1등), group_size
+//             aav_quartile(리그 안 몸값 4분위, 1=최고액), metric_pct(상위 몇 %, 0=1등), group_size,
+//             war_per_season(war_adj ÷ paid_seasons), wps_pct(리그 안 시즌당 WAR 상위 몇 %),
+//             grade('good' | 'bad' | null, ranking_base_sql 의 판정 주석 참고. KBO 는 항상 null)
 //   metric_rank 와 aav_rank 의 차이가 크면 "몸값에 비해 잘한/못한" 계약이다.
 function analysis_ranking(array $f): array
 {
@@ -396,17 +416,26 @@ function analysis_ranking(array $f): array
 }
 
 // 몸값 4분위별 성과 요약 (순위 결과를 분위로 다시 묶은 분석)
-// 키: league_id, currency, aav_quartile, contracts, min_aav, max_aav, avg_aav, avg_metric, avg_rank_pct, war_le0
+// 키: league_id, currency, aav_quartile, contracts, min_aav, max_aav, avg_aav, avg_metric, avg_rank_pct, war_le0,
+//     good_contracts, bad_contracts, good_pct, bad_pct
 //   avg_metric : metric_value 평균. war 지표는 WAR 이 양수인 계약만의 평균 (0 이하는 null 이라 빠진다)
 //   war_le0    : 환산 WAR 0 이하라 metric_value 가 null 인 계약 수 (ops/era 지표는 항상 0)
 //   avg_rank_pct 는 WAR 0 이하 계약의 순위까지 포함한 평균이다.
+//   good_contracts / bad_contracts : grade 가 good / bad 인 계약 수 (고른 지표와 상관없이 WAR 기준)
+//   good_pct / bad_pct : 그 분위 계약 중 good / bad 비율(%). WAR 이 없는 리그(KBO)는 네 키 모두 null
 function analysis_ranking_quartiles(array $f): array
 {
     [$sql, $params] = ranking_base_sql($f);
     $sql .= ' SELECT league_id, MAX(currency) AS currency, aav_quartile,
                      COUNT(*) AS contracts, MIN(aav) AS min_aav, MAX(aav) AS max_aav, ROUND(AVG(aav)) AS avg_aav,
                      ROUND(AVG(metric_value), 3) AS avg_metric, ROUND(AVG(metric_pct), 1) AS avg_rank_pct,
-                     SUM(metric_value IS NULL) AS war_le0
+                     SUM(metric_value IS NULL) AS war_le0,
+                     SUM(CASE WHEN wps_pct IS NULL THEN NULL WHEN grade = \'good\' THEN 1 ELSE 0 END) AS good_contracts,
+                     SUM(CASE WHEN wps_pct IS NULL THEN NULL WHEN grade = \'bad\'  THEN 1 ELSE 0 END) AS bad_contracts,
+                     ROUND(100 * SUM(CASE WHEN wps_pct IS NULL THEN NULL WHEN grade = \'good\' THEN 1 ELSE 0 END)
+                               / NULLIF(COUNT(wps_pct), 0), 1)                                           AS good_pct,
+                     ROUND(100 * SUM(CASE WHEN wps_pct IS NULL THEN NULL WHEN grade = \'bad\'  THEN 1 ELSE 0 END)
+                               / NULLIF(COUNT(wps_pct), 0), 1)                                           AS bad_pct
                 FROM ranked
                GROUP BY league_id, aav_quartile
                ORDER BY league_id DESC, aav_quartile';
