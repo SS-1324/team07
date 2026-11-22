@@ -354,6 +354,12 @@ function ranking_base_sql(array $f): array
         $sql .= ' AND c.total_value >= ?';
         $params[] = (int) $f['min_total'];
     }
+    // 최소 시즌 수: 표본이 작은 계약은 뺀다. 기본 2, 1~10
+    //   war     : 연봉이 나간 시즌 수(paid_seasons) 기준. 기록이 없는 해도 WAR 0 으로 지표에 들어가기 때문
+    //   ops/era : 기록이 있는 시즌 수(seasons) 기준. 기록이 있는 시즌만으로 계산하는 지표이기 때문
+    $seasonCol = (($f['metric'] ?? 'war') === 'ops' || ($f['metric'] ?? 'war') === 'era') ? 'cp.seasons' : 'cp.paid_seasons';
+    $sql .= ' AND ' . $seasonCol . ' >= ?';
+    $params[] = max(1, min(10, (int) ($f['min_seasons'] ?? 2)));
 
     $sql .= '),
             ranked AS (
@@ -370,7 +376,9 @@ function ranking_base_sql(array $f): array
 
 // 계약 효율 순위
 //   $f 키: league('MLB'|'KBO'|''), year_from, year_to, metric('war'|'ops'|'era'), scope('year'|'all'),
-//          role('P'|'B'|''), position(''|MLB 포지션), min_total(이 금액 이상 계약만, 리그 단위 그대로. league 가 '' 이면 무시), top(각 그룹 상위 N)
+//          role('P'|'B'|''), position(''|MLB 포지션), min_total(이 금액 이상 계약만, 리그 단위 그대로. league 가 '' 이면 무시),
+//          min_seasons(이 시즌 수 이상인 계약만, 기본 2, 1~10. war 는 연봉이 나간 시즌, ops/era 는 기록이 있는 시즌 기준.
+//                      1년 계약까지 보려면 1), top(각 그룹 상위 N)
 // 돌려주는 키: contract_id, player_id, player_name, league_id, currency, to_team_name, start_year, end_year, years,
 //             total_value, aav, role, primary_pos, seasons(기록 시즌 수), paid_seasons(연봉 나간 시즌 수),
 //             paid(AAV × paid_seasons), war, war_adj(단축 시즌 환산 WAR), ops, era,
