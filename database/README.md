@@ -24,6 +24,8 @@
 
 `kbo_player_seasons.csv`는 KBO 공식 기록의 2014–2025 정규시즌 순위표에서 수집합니다. [타자 기본기록](https://www.koreabaseball.com/Record/Player/HitterBasic/Basic1.aspx)과 [타자 세부기록](https://www.koreabaseball.com/Record/Player/HitterBasic/Basic2.aspx)은 시즌·선수명·팀으로 결합하고, OPS는 세부기록 표의 공식 값을 사용합니다. 도루는 [주루 기록](https://www.koreabaseball.com/Record/Player/Runner/Basic.aspx), 투수 기록은 [투수 기본기록](https://www.koreabaseball.com/Record/Player/PitcherBasic/Basic1.aspx)에서 가져옵니다. 각 표의 페이지를 모두 확인하며, 공식 표에 표시되지 않은 선수·시즌은 행으로 만들지 않습니다. 타격 기록은 있지만 주루 표에 같은 시즌·선수·팀 행이 없는 경우 `sb`는 0으로 둡니다. 따라서 이 파일은 KBO의 전체 출전 선수 명부가 아니라 해당 기록 순위표에 올라온 선수만 포함합니다. 표에 해당 기록이 없는 선수 유형별 열과 WAR는 빈칸으로 두며, 투구 이닝의 `1/3`, `2/3`은 각각 `.3`, `.7`로 저장합니다.
 
+KBO 선수 132명의 `birth_date`는 KBO 공식 [선수 조회](https://www.koreabaseball.com/Player/Search.aspx)에서 이름으로 검색해 수집했습니다(현역·은퇴 선수 모두 생년월일이 나옵니다). 동명이인은 검색 결과의 출신교·경력 팀이 DB의 소속 팀 이력과 맞는 선수로 골랐고, 그 근거를 `kbo_birth_dates.csv`의 `match_note`에 적었습니다. `k_gimsangsu2`(2021 키움 FA 투수 김상수)는 현재 이름이 김태혁이라 그 이름으로 찾았습니다. `dbinsert.sql`을 다시 생성할 때는 이 파일의 `birth_date`를 `kbo_players.csv`에 넣어야 값이 유지됩니다.
+
 ## 계약
 
 `data/manual/fa_contracts.csv`에는 MLB와 KBO 계약을 함께 둡니다. 필수 열은 `player_id,from_team_id,to_team_id,start_year,end_year,total_value`이며, `guaranteed_value,signed_date`는 선택 열입니다. 선수 ID와 구단 ID는 마스터 CSV의 ID와 정확히 일치해야 합니다. MLB 금액은 USD, KBO 금액은 만원 단위로 입력합니다.
