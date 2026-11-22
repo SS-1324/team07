@@ -342,7 +342,9 @@ function ranking_base_sql(array $f): array
         $sql .= ' AND p.primary_pos = ?';
         $params[] = $f['position'];
     }
-    if (!empty($f['min_total'])) {
+    // 최소 총액은 리그 단위(MLB 달러, KBO 만원) 그대로의 숫자라서 리그를 하나 골랐을 때만 건다.
+    // 리그가 '전체'이면 같은 숫자가 두 통화에 동시에 걸려 한쪽 리그가 통째로 빠지므로 무시한다.
+    if (!empty($f['min_total']) && ($f['league'] ?? '') !== '') {
         $sql .= ' AND c.total_value >= ?';
         $params[] = (int) $f['min_total'];
     }
@@ -362,7 +364,7 @@ function ranking_base_sql(array $f): array
 
 // 계약 효율 순위
 //   $f 키: league('MLB'|'KBO'|''), year_from, year_to, metric('war'|'ops'|'era'), scope('year'|'all'),
-//          role('P'|'B'|''), position(''|MLB 포지션), min_total(이 금액 이상 계약만, 리그 단위 그대로), top(각 그룹 상위 N)
+//          role('P'|'B'|''), position(''|MLB 포지션), min_total(이 금액 이상 계약만, 리그 단위 그대로. league 가 '' 이면 무시), top(각 그룹 상위 N)
 // 돌려주는 키: contract_id, player_id, player_name, league_id, currency, to_team_name, start_year, end_year, years,
 //             total_value, aav, role, primary_pos, seasons(기록 시즌 수), paid_seasons(연봉 나간 시즌 수),
 //             paid(AAV × paid_seasons), war, war_adj(단축 시즌 환산 WAR), ops, era,
