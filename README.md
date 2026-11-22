@@ -45,6 +45,7 @@ team07/
 │   ├── session.php        세션 (관심 선수, 알림 메시지)
 │   ├── helpers.php        출력·입력·주소·금액 함수
 │   └── queries/           SQL을 담은 함수 (teams, contracts, players, analysis)
+│       └── analysis.php     [DB] 고급 분석 4종 쿼리
 ├── actions/             [백엔드] 폼 제출을 받아 처리하고 화면으로 돌려보내는 파일
 ├── database/            [DB] dbcreate / dbinsert / dbdrop / dbdump, 데이터 생성 도구
 └── docs/                ERD, 화면 예시(prototype), 보고서·논문·발표 자료
@@ -53,15 +54,16 @@ team07/
 | 담당 | 고치는 폴더 |
 |---|---|
 | 프론트 | `pages/`, `layout/`, `assets/` |
-| 백엔드 | `backend/`, `actions/`, `config/` |
-| DB | `database/`, `docs/ERD.md` |
+| 백엔드 | `backend/` (`queries/analysis.php` 제외), `actions/`, `config/` |
+| DB | `database/`, `docs/ERD.md` , `backend/queries/analysis.php`|
 
 ## 일하는 방식
 
 화면 하나는 세 조각으로 나뉜다.
 
 1. **프론트**가 `pages/` 에 화면을 만든다. 입력을 읽고, 백엔드 함수를 부르고, 받은 배열을 HTML로 출력한다. 화면 파일에는 SQL을 쓰지 않는다.
-2. **백엔드**가 `backend/queries/` 에 함수를 만든다. 입력값을 받아 SQL을 실행하고 배열을 돌려준다. HTML은 쓰지 않는다.
+2. **백엔드**가 `backend/queries/` 에 함수를 만든다. 입력값을 받아 SQL을 실행하고 배열을 돌려준다. HTML은 쓰지 않는다. 고급 분석 4종은 예외로 DB 담당이 `backend/queries/analysis.php`에 함수를 만든다.
+규칙은 다른 쿼리 함수와 같다: `db.php`의 `db_all` / `db_one`으로 실행하고, HTML은 쓰지 않고 배열을 돌려준다. `db.php`, `helpers.php`의 함수가 더 필요하면 백엔드에 요청한다 (직접 고치지 않는다).
 3. 저장·수정·삭제는 화면의 폼이 `actions/` 파일로 POST 하고, 처리 후 화면으로 redirect 한다.
 
 프론트와 백엔드는 **함수 이름, 받는 값, 돌려주는 배열의 키**만 먼저 맞추면 따로 작업할 수 있다.
@@ -81,10 +83,10 @@ team07/
 | INSERT | `pages/contracts/add.php` → `actions/contract_add.php` |
 | UPDATE | `pages/contracts/edit.php`, `pages/players/edit.php` → `actions/*_edit.php` |
 | DELETE | `pages/contracts/list.php` → `actions/contract_delete.php` |
-| 분석 1 복합 그룹화 집계 | `pages/analysis/aggregate.php` |
-| 분석 2 롤업 / 드릴다운 | `pages/analysis/rollup.php` |
-| 분석 3 순위 | `pages/analysis/ranking.php` |
-| 분석 4 윈도우 함수 | `pages/analysis/window.php` |
+| 분석 1 복합 그룹화 집계 | `pages/analysis/aggregate.php`, `backend/queries/analysis.php` |
+| 분석 2 롤업 / 드릴다운 | `pages/analysis/rollup.php`, `backend/queries/analysis.php` |
+| 분석 3 순위            | `pages/analysis/ranking.php`, `backend/queries/analysis.php` |
+| 분석 4 윈도우 함수      | `pages/analysis/window.php`, `backend/queries/analysis.php` |
 | PreparedStatement | `backend/db.php` 의 `db_all`, `db_one`, `db_exec` |
 | 세션 | `backend/session.php`, `actions/watchlist_toggle.php`, `pages/players/watchlist.php` |
 | 트랜잭션 | `actions/contract_add.php` |
