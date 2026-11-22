@@ -45,13 +45,54 @@ function sql_cte_season_scale(): string
     return 'season_scale AS (' . implode(' UNION ALL ', $rows) . ')';
 }
 
-// 계약 기간 중 환산 WAR 합 (ps_year, season_scale CTE 뒤에 붙인다). 기록 시즌이 없는 계약은 행이 없으니 LEFT JOIN 한다.
-const SQL_CTE_CONTRACT_WAR_ADJ = "contract_war_adj AS (
-    SELECT c.contract_id, SUM(y.war * COALESCE(s.scale, 1)) AS war_adj
+// =====================================================================================
+// 계약별 성과 (집계·순위에서 사용, ps_year 와 season_scale CTE 뒤에 붙인다)
+// =====================================================================================
+// common.php 의 contract_perf 는 지급액을 'AAV × 기록이 있는 시즌 수'로 잡는다. 그러면 부상·방출·출장정지로
+// 기록이 없는 해의 연봉이 빠져서 나쁜 계약이 효율적으로 보인다. 여기서는 이렇게 계산한다.
+//   eff_end      : 계약이 실제로 유효한 마지막 해 = 아래 셋 중 가장 이른 해
+//                  - 계약 종료 연도 (end_year)
+//                  - 같은 선수의 다음 계약 시작 직전 해 (옵트아웃·연장으로 새 계약이 기존 계약을 대체한 경우)
+//                  - DB 의 마지막 시즌 (진행 중 계약은 지금까지만)
+//   paid_seasons : start_year ~ eff_end 시즌 수 (기록이 없어도 연봉은 나간 해로 센다)
+//   paid         : AAV × paid_seasons
+//   seasons      : 그 기간 중 기록이 있는 시즌 수
+//   war, war_adj : 기록이 없는 해는 WAR 0. 단, WAR 을 기록하지 않는 리그(KBO)는 NULL 그대로 둔다.
+//                  war_adj 는 단축 시즌을 정규 시즌으로 환산한 값
+//   ops, pa_ops, era, ip : 기록이 있는 시즌만으로 계산 (비율 지표라 빠진 해를 0 으로 채우지 않는다)
+// 한계: 자진 은퇴·출전 거부로 연봉을 받지 않은 해는 DB 에 지급 여부가 없어서 지급한 것으로 센다.
+const SQL_CTE_CONTRACT_EFF = "league_war AS (
+    SELECT t.league_id, COUNT(ps.war) > 0 AS has_war
+      FROM player_seasons ps
+      JOIN teams t ON t.team_id = ps.team_id
+     GROUP BY t.league_id
+),
+contract_span AS (
+    SELECT c.contract_id, c.player_id, c.start_year, c.aav, tt.league_id,
+           LEAST(c.end_year,
+                 COALESCE(LEAD(c.start_year) OVER (PARTITION BY c.player_id ORDER BY c.start_year, c.contract_id) - 1,
+                          c.end_year),
+                 (SELECT MAX(year_id) FROM team_seasons)) AS eff_end
       FROM fa_contracts c
-      JOIN ps_year y ON y.player_id = c.player_id AND y.year_id BETWEEN c.start_year AND c.end_year
-      LEFT JOIN season_scale s ON s.league_id = y.league_id AND s.year_id = y.year_id
-     GROUP BY c.contract_id
+      JOIN teams tt ON tt.team_id = c.to_team_id
+),
+contract_eff AS (
+    SELECT cs.contract_id, cs.eff_end,
+           GREATEST(cs.eff_end - cs.start_year + 1, 0)           AS paid_seasons,
+           cs.aav * GREATEST(cs.eff_end - cs.start_year + 1, 0)  AS paid,
+           COUNT(y.year_id)                                      AS seasons,
+           CASE WHEN lw.has_war THEN COALESCE(SUM(y.war), 0) ELSE SUM(y.war) END AS war,
+           CASE WHEN lw.has_war THEN COALESCE(SUM(y.war * COALESCE(sc.scale, 1)), 0)
+                ELSE SUM(y.war * COALESCE(sc.scale, 1)) END     AS war_adj,
+           SUM(y.ops_pa) / NULLIF(SUM(y.pa_ops), 0)              AS ops,
+           SUM(y.pa_ops)                                         AS pa_ops,
+           SUM(y.era_ip) / NULLIF(SUM(y.ip), 0)                  AS era,
+           SUM(y.ip)                                             AS ip
+      FROM contract_span cs
+      LEFT JOIN league_war lw   ON lw.league_id = cs.league_id
+      LEFT JOIN ps_year y       ON y.player_id = cs.player_id AND y.year_id BETWEEN cs.start_year AND cs.eff_end
+      LEFT JOIN season_scale sc ON sc.league_id = y.league_id AND sc.year_id = y.year_id
+     GROUP BY cs.contract_id, cs.eff_end, cs.start_year, cs.aav, lw.has_war
 )";
 
 // =====================================================================================
@@ -81,10 +122,11 @@ function aggregate_group_options(): array
 // $groupBy  : aggregate_group_options() 의 키 배열 (1~3개, 고른 순서대로 묶는다)
 // $role     : 'P' | 'B' | ''
 // 돌려주는 키: league_id, currency, (묶은 기준 키들), contracts, avg_aav, max_aav, min_aav, sum_total,
-//             avg_years, seasons, war, war_adj, war_per_season, ops, era, cost_per_war
+//             avg_years, seasons, paid_seasons, war, war_adj, war_per_season, ops, era, cost_per_war
+//   seasons      : 기록이 있는 시즌 수 합,  paid_seasons : 연봉이 나간 시즌 수 합 (기록이 없는 해 포함, contract_eff 참고)
 //   war          : 기록 그대로의 WAR 합,  war_adj : 단축 시즌을 정규 시즌으로 환산한 WAR 합
-//   war_per_season, cost_per_war 는 war_adj 기준
-//   cost_per_war : 계약 기간 중 지급액(AAV × 기록 시즌 수) ÷ 환산 WAR 합. 환산 WAR 합이 0 이하이거나 없으면 null
+//   war_per_season : war_adj ÷ paid_seasons (기록이 없는 해는 WAR 0 으로 들어간다)
+//   cost_per_war : 지급액(AAV × paid_seasons) ÷ 환산 WAR 합. 환산 WAR 합이 0 이하이거나 없으면 null
 function analysis_aggregate(string $leagueId, int $yearFrom, int $yearTo, array $groupBy, string $role = ''): array
 {
     [$yearFrom, $yearTo] = year_range($yearFrom, $yearTo);
@@ -102,8 +144,8 @@ function analysis_aggregate(string $leagueId, int $yearFrom, int $yearTo, array 
         $orders[]  = '`' . $key . '`';
     }
 
-    $sql = 'WITH ' . SQL_CTE_PS_YEAR . ', ' . SQL_CTE_CONTRACT_PERF . ', ' . SQL_CTE_PLAYER_ROLE . ', '
-                   . sql_cte_season_scale() . ', ' . SQL_CTE_CONTRACT_WAR_ADJ . '
+    $sql = 'WITH ' . SQL_CTE_PS_YEAR . ', ' . SQL_CTE_PLAYER_ROLE . ', '
+                   . sql_cte_season_scale() . ', ' . SQL_CTE_CONTRACT_EFF . '
             SELECT tt.league_id, l.currency, ' . implode(', ', $selects) . ',
                    COUNT(*)                                         AS contracts,
                    ROUND(AVG(c.aav))                                AS avg_aav,
@@ -112,21 +154,21 @@ function analysis_aggregate(string $leagueId, int $yearFrom, int $yearTo, array 
                    SUM(c.total_value)                               AS sum_total,
                    ROUND(AVG(c.years), 1)                           AS avg_years,
                    SUM(cp.seasons)                                  AS seasons,
+                   SUM(cp.paid_seasons)                             AS paid_seasons,
                    ROUND(SUM(cp.war), 1)                            AS war,
-                   ROUND(SUM(cw.war_adj), 1)                        AS war_adj,
-                   ROUND(SUM(cw.war_adj) / NULLIF(SUM(CASE WHEN cp.war IS NOT NULL THEN cp.seasons END), 0), 2) AS war_per_season,
+                   ROUND(SUM(cp.war_adj), 1)                        AS war_adj,
+                   ROUND(SUM(cp.war_adj) / NULLIF(SUM(CASE WHEN cp.war IS NOT NULL THEN cp.paid_seasons END), 0), 2) AS war_per_season,
                    ROUND(SUM(cp.ops * cp.pa_ops) / NULLIF(SUM(CASE WHEN cp.ops IS NOT NULL THEN cp.pa_ops END), 0), 3) AS ops,
                    ROUND(SUM(cp.era * cp.ip) / NULLIF(SUM(CASE WHEN cp.era IS NOT NULL THEN cp.ip END), 0), 2)       AS era,
-                   CASE WHEN SUM(cw.war_adj) > 0
-                        THEN ROUND(SUM(CASE WHEN cp.war IS NOT NULL THEN cp.paid END) / SUM(cw.war_adj))
+                   CASE WHEN SUM(cp.war_adj) > 0
+                        THEN ROUND(SUM(CASE WHEN cp.war IS NOT NULL THEN cp.paid END) / SUM(cp.war_adj))
                    END                                              AS cost_per_war
               FROM fa_contracts c
               JOIN teams tt         ON tt.team_id = c.to_team_id
               JOIN leagues l        ON l.league_id = tt.league_id
               JOIN players p        ON p.player_id = c.player_id
               JOIN player_role r    ON r.player_id = c.player_id
-              JOIN contract_perf cp ON cp.contract_id = c.contract_id
-              LEFT JOIN contract_war_adj cw ON cw.contract_id = c.contract_id
+              JOIN contract_eff cp  ON cp.contract_id = c.contract_id
              WHERE c.start_year BETWEEN ? AND ?';
     $params = [$yearFrom, $yearTo];
 
@@ -248,13 +290,14 @@ function analysis_drill_contracts(string $teamId, int $year): array
 // =====================================================================================
 
 // 지표별 정의: [순위 기준 SQL 식, 정렬 방향, 포함 조건]
-//   war : 환산 WAR 1 당 비용 (낮을수록 효율적). 계약 기간 환산 WAR 합이 0 보다 커야 한다 → MLB 만
+//   war : 환산 WAR 1 당 비용 (낮을수록 효율적). 지급액은 기록이 없는 해까지 포함 (contract_eff 참고).
+//         계약 기간 환산 WAR 합이 0 보다 커야 한다 → MLB 만
 //   ops : 계약 기간 OPS (높을수록 좋음). 타석 200 이상
 //   era : 계약 기간 ERA (낮을수록 좋음). 이닝 50 이상
 function ranking_metric_sql(string $metric): array
 {
     $metrics = [
-        'war' => ['ROUND(cp.paid / cw.war_adj)', 'ASC',  'cw.war_adj > 0'],
+        'war' => ['ROUND(cp.paid / cp.war_adj)', 'ASC',  'cp.war_adj > 0'],
         'ops' => ['ROUND(cp.ops, 3)',        'DESC', 'cp.pa_ops >= 200'],
         'era' => ['ROUND(cp.era, 2)',        'ASC',  'cp.ip >= 50'],
     ];
@@ -268,14 +311,14 @@ function ranking_base_sql(array $f): array
     // 순위를 나누는 범위: 'year' 는 같은 리그·같은 시작 연도 안에서, 'all' 은 리그 전체에서
     $partition = (($f['scope'] ?? 'year') === 'all') ? 'league_id' : 'league_id, start_year';
 
-    $sql = 'WITH ' . SQL_CTE_PS_YEAR . ', ' . SQL_CTE_CONTRACT_PERF . ', ' . SQL_CTE_PLAYER_ROLE . ', '
-                   . sql_cte_season_scale() . ', ' . SQL_CTE_CONTRACT_WAR_ADJ . ',
+    $sql = 'WITH ' . SQL_CTE_PS_YEAR . ', ' . SQL_CTE_PLAYER_ROLE . ', '
+                   . sql_cte_season_scale() . ', ' . SQL_CTE_CONTRACT_EFF . ',
             base AS (
                 SELECT c.contract_id, c.player_id, ' . SQL_PLAYER_NAME . ' AS player_name,
                        tt.league_id, l.currency, tt.team_name AS to_team_name,
                        c.start_year, c.end_year, c.years, c.total_value, c.aav,
                        r.role, p.primary_pos,
-                       cp.seasons, cp.paid, ROUND(cp.war, 1) AS war, ROUND(cw.war_adj, 1) AS war_adj,
+                       cp.seasons, cp.paid_seasons, cp.paid, ROUND(cp.war, 1) AS war, ROUND(cp.war_adj, 1) AS war_adj,
                        ROUND(cp.ops, 3) AS ops, ROUND(cp.era, 2) AS era,
                        ' . $valueSql . ' AS metric_value
                   FROM fa_contracts c
@@ -283,8 +326,7 @@ function ranking_base_sql(array $f): array
                   JOIN leagues l        ON l.league_id = tt.league_id
                   JOIN players p        ON p.player_id = c.player_id
                   JOIN player_role r    ON r.player_id = c.player_id
-                  JOIN contract_perf cp ON cp.contract_id = c.contract_id
-                  LEFT JOIN contract_war_adj cw ON cw.contract_id = c.contract_id
+                  JOIN contract_eff cp  ON cp.contract_id = c.contract_id
                  WHERE ' . $validSql . ' AND c.start_year BETWEEN ? AND ?';
     $params = year_range((int) ($f['year_from'] ?? 2016), (int) ($f['year_to'] ?? 2024));
 
@@ -322,7 +364,8 @@ function ranking_base_sql(array $f): array
 //   $f 키: league('MLB'|'KBO'|''), year_from, year_to, metric('war'|'ops'|'era'), scope('year'|'all'),
 //          role('P'|'B'|''), position(''|MLB 포지션), min_total(이 금액 이상 계약만, 리그 단위 그대로), top(각 그룹 상위 N)
 // 돌려주는 키: contract_id, player_id, player_name, league_id, currency, to_team_name, start_year, end_year, years,
-//             total_value, aav, role, primary_pos, seasons, paid, war, war_adj(단축 시즌 환산 WAR), ops, era,
+//             total_value, aav, role, primary_pos, seasons(기록 시즌 수), paid_seasons(연봉 나간 시즌 수),
+//             paid(AAV × paid_seasons), war, war_adj(단축 시즌 환산 WAR), ops, era,
 //             metric_value(순위 기준값, war 지표는 paid ÷ war_adj), metric_rank(그룹 안 순위), aav_rank(그룹 안 몸값 순위),
 //             aav_quartile(리그 안 몸값 4분위, 1=최고액), metric_pct(상위 몇 %, 0=1등), group_size
 //   metric_rank 와 aav_rank 의 차이가 크면 "몸값에 비해 잘한/못한" 계약이다.
