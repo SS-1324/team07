@@ -99,17 +99,26 @@ contract_eff AS (
 // 1. 복합 그룹화 집계
 // =====================================================================================
 
+// 시즌 나이: 그 해 6월 30일 기준 만 나이 (Baseball-Reference 와 같은 기준).
+// 연도만 빼면(연도 - 출생 연도) 생일이 7월 이후인 선수가 1살 많게 나온다.
+// $yearSql 은 이 파일 안에서 고정한 열 이름만 넘긴다 (사용자 입력 아님). birth_date 가 NULL 이면 NULL.
+function sql_season_age(string $yearSql): string
+{
+    return "TIMESTAMPDIFF(YEAR, p.birth_date, DATE(CONCAT({$yearSql}, '-06-30')))";
+}
+
 // 묶을 수 있는 기준: 키 => [화면 표시, SQL 식]
 function aggregate_group_options(): array
 {
+    $age = sql_season_age('c.start_year');
     return [
         'role'       => ['투수/타자', "CASE r.role WHEN 'P' THEN '투수' ELSE '타자' END"],
         'position'   => ['포지션 (MLB)', "COALESCE(p.primary_pos, '미상')"],
         'years_band' => ['계약 기간', "CASE WHEN c.years <= 2 THEN '1-2년' WHEN c.years <= 4 THEN '3-4년'
                                               WHEN c.years <= 6 THEN '5-6년' ELSE '7년 이상' END"],
-        'age_band'   => ['계약 시 나이 (MLB)', "CASE WHEN p.birth_date IS NULL THEN '미상'
-                                              WHEN c.start_year - YEAR(p.birth_date) <= 29 THEN '29세 이하'
-                                              WHEN c.start_year - YEAR(p.birth_date) <= 32 THEN '30-32세'
+        'age_band'   => ['계약 시 나이', "CASE WHEN p.birth_date IS NULL THEN '미상'
+                                              WHEN {$age} <= 29 THEN '29세 이하'
+                                              WHEN {$age} <= 32 THEN '30-32세'
                                               ELSE '33세 이상' END"],
         'move'       => ['이적 여부', "CASE WHEN c.from_team_id IS NULL THEN '해외/기타'
                                               WHEN c.from_team_id = c.to_team_id THEN '잔류' ELSE '이적' END"],
@@ -492,7 +501,7 @@ function analysis_window(string $playerId, int $yearFrom, int $yearTo, string $m
                        COUNT(yv.metric_value) OVER (PARTITION BY yv.league_id, yv.year_id)                   AS league_count
                   FROM yv
             )
-            SELECT w.year_id, w.year_id - YEAR(p.birth_date) AS age, w.team_ids, w.games, w.pa, w.ip,
+            SELECT w.year_id, ' . sql_season_age('w.year_id') . ' AS age, w.team_ids, w.games, w.pa, w.ip,
                    w.war, w.ops, w.era, w.metric_value, w.season_scale, w.prev_year, w.prev_value,
                    ROUND(w.change_value, 3) AS `change`,
                    ROUND(w.cumulative, 3)   AS cumulative,
