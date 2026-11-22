@@ -1,0 +1,5 @@
+# Stadium hero
+
+AI-generated fictional baseball stadium. Generated with the built-in image generation tool on 2026-11-18; not a photo of an actual venue, not an endorsement by any team. Encoded as WebP for delivery; no external image requests.
+
+Prompt: Use case: photorealistic-natural. Asset type: wide website hero background for DIAMONDATA baseball analytics. Create a realistic editorial sports photograph, wide landscape 3:2. View from behind home plate at a beautiful professional baseball stadium at blue hour, neatly mown emerald outfield, accurately shaped baseball diamond and reddish clay basepaths, luminous stadium floodlights, grandstands softly detailed. Right half features the diamond and field; left third darker shadowed seats and sky with clean negative space for overlay headline. Premium understated navy, natural green, warm ivory lights, subtle film texture, authentic photographic detail, realistic perspective, no illustration, no infographic, no typography, no logos, no watermarks. No close-up people. This is a fictional stadium scene, not a representation of a named venue.
