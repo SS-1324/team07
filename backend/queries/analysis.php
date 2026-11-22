@@ -289,17 +289,23 @@ function analysis_drill_contracts(string $teamId, int $year): array
 // 3. 순위 분석
 // =====================================================================================
 
-// 지표별 정의: [순위 기준 SQL 식, 정렬 방향, 포함 조건]
+// 지표별 정의: [순위 기준 SQL 식, 순위 정렬 (base 의 열 이름 기준, 좋은 계약이 앞), 포함 조건]
 //   war : 환산 WAR 1 당 비용 (낮을수록 효율적). 지급액은 기록이 없는 해까지 포함 (contract_eff 참고).
-//         계약 기간 환산 WAR 합이 0 보다 커야 한다 → MLB 만
+//         WAR 기록이 있는 리그(MLB)에서 연봉이 1시즌 이상 나간 계약 전부.
+//         환산 WAR 합이 0 이하이면 WAR 당 비용을 계산할 수 없어서 metric_value 는 null 이고,
+//         WAR 이 양수인 계약 전부의 뒤에 둔다. 그 안에서는 지급액이 많을수록, 같으면 WAR 이 낮을수록 아래다.
+//         (0 이하 WAR 로 나누면 음수 비용이 1등이 되므로 나누지 않는다)
 //   ops : 계약 기간 OPS (높을수록 좋음). 타석 200 이상
 //   era : 계약 기간 ERA (낮을수록 좋음). 이닝 50 이상
 function ranking_metric_sql(string $metric): array
 {
     $metrics = [
-        'war' => ['ROUND(cp.paid / cp.war_adj)', 'ASC',  'cp.war_adj > 0'],
-        'ops' => ['ROUND(cp.ops, 3)',        'DESC', 'cp.pa_ops >= 200'],
-        'era' => ['ROUND(cp.era, 2)',        'ASC',  'cp.ip >= 50'],
+        // 화면에 보이는 war_adj(소수 첫째 자리)가 0.0 인데 비용이 나오지 않게 반올림한 값으로 판단한다
+        'war' => ['CASE WHEN ROUND(cp.war_adj, 1) > 0 THEN ROUND(cp.paid / cp.war_adj) END',
+                  'metric_value IS NULL, metric_value ASC, paid ASC, war_adj DESC',
+                  'cp.war_adj IS NOT NULL AND cp.paid_seasons > 0'],
+        'ops' => ['ROUND(cp.ops, 3)', 'metric_value DESC', 'cp.pa_ops >= 200'],
+        'era' => ['ROUND(cp.era, 2)', 'metric_value ASC',  'cp.ip >= 50'],
     ];
     return $metrics[$metric] ?? $metrics['war'];
 }
@@ -307,7 +313,7 @@ function ranking_metric_sql(string $metric): array
 // 순위 계산 공통 부분. [SQL, params] 를 돌려준다 (analysis_ranking, analysis_ranking_quartiles 가 사용)
 function ranking_base_sql(array $f): array
 {
-    [$valueSql, $dir, $validSql] = ranking_metric_sql($f['metric'] ?? 'war');
+    [$valueSql, $orderSql, $validSql] = ranking_metric_sql($f['metric'] ?? 'war');
     // 순위를 나누는 범위: 'year' 는 같은 리그·같은 시작 연도 안에서, 'all' 은 리그 전체에서
     $partition = (($f['scope'] ?? 'year') === 'all') ? 'league_id' : 'league_id, start_year';
 
@@ -352,10 +358,10 @@ function ranking_base_sql(array $f): array
     $sql .= '),
             ranked AS (
                 SELECT base.*,
-                       RANK()       OVER (PARTITION BY ' . $partition . ' ORDER BY metric_value ' . $dir . ') AS metric_rank,
+                       RANK()       OVER (PARTITION BY ' . $partition . ' ORDER BY ' . $orderSql . ') AS metric_rank,
                        DENSE_RANK() OVER (PARTITION BY ' . $partition . ' ORDER BY aav DESC)                   AS aav_rank,
                        NTILE(4)     OVER (PARTITION BY league_id ORDER BY aav DESC)                             AS aav_quartile,
-                       ROUND(100 * PERCENT_RANK() OVER (PARTITION BY ' . $partition . ' ORDER BY metric_value ' . $dir . '), 1) AS metric_pct,
+                       ROUND(100 * PERCENT_RANK() OVER (PARTITION BY ' . $partition . ' ORDER BY ' . $orderSql . '), 1) AS metric_pct,
                        COUNT(*)     OVER (PARTITION BY ' . $partition . ')                                     AS group_size
                   FROM base
             )';
@@ -368,7 +374,8 @@ function ranking_base_sql(array $f): array
 // 돌려주는 키: contract_id, player_id, player_name, league_id, currency, to_team_name, start_year, end_year, years,
 //             total_value, aav, role, primary_pos, seasons(기록 시즌 수), paid_seasons(연봉 나간 시즌 수),
 //             paid(AAV × paid_seasons), war, war_adj(단축 시즌 환산 WAR), ops, era,
-//             metric_value(순위 기준값, war 지표는 paid ÷ war_adj), metric_rank(그룹 안 순위), aav_rank(그룹 안 몸값 순위),
+//             metric_value(순위 기준값, war 지표는 paid ÷ war_adj. war_adj 가 0 이하이면 null 이고 순위는 맨 뒤쪽),
+//             metric_rank(그룹 안 순위), aav_rank(그룹 안 몸값 순위),
 //             aav_quartile(리그 안 몸값 4분위, 1=최고액), metric_pct(상위 몇 %, 0=1등), group_size
 //   metric_rank 와 aav_rank 의 차이가 크면 "몸값에 비해 잘한/못한" 계약이다.
 function analysis_ranking(array $f): array
@@ -381,13 +388,17 @@ function analysis_ranking(array $f): array
 }
 
 // 몸값 4분위별 성과 요약 (순위 결과를 분위로 다시 묶은 분석)
-// 키: league_id, currency, aav_quartile, contracts, min_aav, max_aav, avg_aav, avg_metric, avg_rank_pct
+// 키: league_id, currency, aav_quartile, contracts, min_aav, max_aav, avg_aav, avg_metric, avg_rank_pct, war_le0
+//   avg_metric : metric_value 평균. war 지표는 WAR 이 양수인 계약만의 평균 (0 이하는 null 이라 빠진다)
+//   war_le0    : 환산 WAR 0 이하라 metric_value 가 null 인 계약 수 (ops/era 지표는 항상 0)
+//   avg_rank_pct 는 WAR 0 이하 계약의 순위까지 포함한 평균이다.
 function analysis_ranking_quartiles(array $f): array
 {
     [$sql, $params] = ranking_base_sql($f);
     $sql .= ' SELECT league_id, MAX(currency) AS currency, aav_quartile,
                      COUNT(*) AS contracts, MIN(aav) AS min_aav, MAX(aav) AS max_aav, ROUND(AVG(aav)) AS avg_aav,
-                     ROUND(AVG(metric_value), 3) AS avg_metric, ROUND(AVG(metric_pct), 1) AS avg_rank_pct
+                     ROUND(AVG(metric_value), 3) AS avg_metric, ROUND(AVG(metric_pct), 1) AS avg_rank_pct,
+                     SUM(metric_value IS NULL) AS war_le0
                 FROM ranked
                GROUP BY league_id, aav_quartile
                ORDER BY league_id DESC, aav_quartile';
