@@ -28,10 +28,12 @@
 
 `data/manual/fa_contracts.csv`에는 MLB와 KBO 계약을 함께 둡니다. 필수 열은 `player_id,from_team_id,to_team_id,start_year,end_year,total_value`이며, `guaranteed_value,signed_date`는 선택 열입니다. 선수 ID와 구단 ID는 마스터 CSV의 ID와 정확히 일치해야 합니다. MLB 금액은 USD, KBO 금액은 만원 단위로 입력합니다.
 
-MLB Spotrac 자료는 연도별 Free Agents 페이지를 참고합니다. 2016–2023년은 계약 금액 내림차순 상위 15건씩 정리했습니다. 2024년은 기존 10건을 유지하고 5건을 추가해 총 15건입니다. 일본·한국 리그에서 MLB로 온 선수처럼 원소속팀이 Lahman MLB 구단이 아닌 경우 `team_from`은 비워 둡니다.
+MLB Spotrac 자료는 연도별 Free Agents 페이지를 참고합니다. 2016–2024년은 계약 금액 내림차순 상위 15건을 기준으로 정리합니다. 2024년 목록도 다른 연도와 같은 기준으로 맞춰 총 15건으로 구성했습니다. 일본·한국 리그에서 MLB로 온 선수처럼 원소속팀이 Lahman MLB 구단이 아닌 경우 `from_team_id`는 비워 둡니다.
 
 - [2016](https://www.spotrac.com/mlb/free-agents/_/year/2016), [2017](https://www.spotrac.com/mlb/free-agents/_/year/2017), [2018](https://www.spotrac.com/mlb/free-agents/_/year/2018), [2019](https://www.spotrac.com/mlb/free-agents/_/year/2019)
 - [2020](https://www.spotrac.com/mlb/free-agents/_/year/2020), [2021](https://www.spotrac.com/mlb/free-agents/_/year/2021), [2022](https://www.spotrac.com/mlb/free-agents/_/year/2022), [2023](https://www.spotrac.com/mlb/free-agents/_/year/2023), [2024](https://www.spotrac.com/mlb/free-agents/_/year/2024)
+
+현재 `data/manual/kbo_players.csv`의 KBO 선수 132명은 `birth_date`가 비어 있습니다. 연령 분석에 사용할 생년월일 자료를 반영한 뒤 입력 CSV와 `dbinsert.sql`을 다시 생성해야 합니다.
 
 ## 기존 Lahman 파일
 
