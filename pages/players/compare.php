@@ -1,21 +1,4 @@
 <?php
-// pages/players/compare.php
-// 담당: 프론트 (이름) / 쿼리: 백엔드 (이름)
-// 과제 요건: 세션
-// 만드는 방법은 pages/teams/list.php 를 따라 한다. ① 입력 읽기 → ② 백엔드 함수 호출 → ③ HTML 출력
-
-require_once __DIR__ . '/../../backend/bootstrap.php';
-
-$pageTitle  = '관심 선수 비교';
-$activeMenu = 'watchlist';
-require __DIR__ . '/../../layout/header.php';
-?>
-
-<section class="panel todo">
-    <p>아직 만들지 않은 화면입니다. (과제 요건: 세션)</p>
-    <ul>
-        <li>세션의 관심 선수 중 선택한 선수의 계약과 시즌 성적을 나란히 보여준다</li>
-    </ul>
-</section>
-
-<?php require __DIR__ . '/../../layout/footer.php'; ?>
+require_once __DIR__.'/../../layout/ui.php';
+$ids=input_choices('ids',watchlist_ids());ui_start('관심 선수 비교','watchlist','계약 전 2시즌과 계약 기간 중 기록을 비교합니다.');if(count($ids)<2||count($ids)>4){ui_note('관심 선수 화면에서 2~4명을 선택하세요.');echo ui_link('pages/players/watchlist.php','관심 선수로 이동',[],'primary');}else{ui_note('계약 중 성적은 DB에 기록이 있는 시즌만 포함합니다. 기간이 다른 WAR 합계를 단순 비교하지 마세요. 리그별 금액 단위가 다릅니다.');ui_table('계약 전·중 성적',players_compare($ids),['player_name'=>['선수','ui_player'],'league_id'=>'리그','start_year'=>'시작','end_year'=>'종료','aav'=>ui_money('aav','AAV'),'pre_war'=>ui_number('pre_war','계약 전 WAR',1),'in_war'=>ui_number('in_war','계약 중 WAR',1),'in_seasons'=>'계약 중 기록 시즌','pre_ops'=>ui_number('pre_ops','계약 전 OPS',3),'in_ops'=>ui_number('in_ops','계약 중 OPS',3),'pre_era'=>ui_number('pre_era','계약 전 ERA',2),'in_era'=>ui_number('in_era','계약 중 ERA',2)]);}
+ui_end();

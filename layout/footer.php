@@ -1,9 +1,1 @@
-<?php
-// layout/footer.php
-// 담당: 프론트
-?>
-    <footer class="page-footer">Team07 · FA Contract Value</footer>
-</main>
-<script src="<?= h(url('assets/js/app.js')) ?>"></script>
-</body>
-</html>
+<footer class="footer"><span>DIAMONDATA / TEAM 07</span><span>금액 저장 단위: KBO 만원 · MLB 달러 | —: 미확보</span></footer></main></div></div></body></html>

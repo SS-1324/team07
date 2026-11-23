@@ -1,23 +1,4 @@
 <?php
-// pages/analysis/window.php
-// 담당: 프론트 (이름) / 쿼리: 백엔드 (이름)
-// 과제 요건: 고급 분석 4 — 윈도우 함수 (LAG, 누적합, 이동평균)
-// 만드는 방법은 pages/teams/list.php 를 따라 한다. ① 입력 읽기 → ② 백엔드 함수 호출 → ③ HTML 출력
-
-require_once __DIR__ . '/../../backend/bootstrap.php';
-
-$pageTitle  = '시즌 성적 추이';
-$activeMenu = 'window';
-require __DIR__ . '/../../layout/header.php';
-?>
-
-<section class="panel todo">
-    <p>아직 만들지 않은 화면입니다. (과제 요건: 고급 분석 4 — 윈도우 함수 (LAG, 누적합, 이동평균))</p>
-    <ul>
-        <li>입력: 선수 선택, 연도 범위, 이동평균 구간(2년/3년)</li>
-        <li>결과: 시즌별 WAR, 전년 대비 변화, 누적 WAR, 이동평균</li>
-        <li>쿼리 함수는 analysis_window()</li>
-    </ul>
-</section>
-
-<?php require __DIR__ . '/../../layout/footer.php'; ?>
+require_once __DIR__.'/../../layout/ui.php';
+$f=ui_filters('window');$options=[];foreach(players_options($f['league']) as $p)$options[$p['player_id']]=$p['player_name'];$f['player_id']=input_str('player_id',$f['player_id']??'');if(!isset($options[$f['player_id']]))$f['player_id']=array_key_first($options)??'';$p=$f['player_id']!==''?player_find($f['player_id']):null;$f['metric']=input_choice('metric',['war','ops','era'],$f['metric']??($f['league']==='KBO'?(($p['role']??'B')==='P'?'era':'ops'):'war'));$f['span']=(int)input_choice('span',['2','3'],(string)($f['span']??3));filters_remember('window',$f);$rows=$p?analysis_window($f['player_id'],$f['year_from'],$f['year_to'],$f['metric'],$f['span']):[];ui_start('선수 시즌 성적 추이','window','시즌 성적, 이동평균과 같은 해 리그 FA 선수 평균을 비교하세요.');echo '<form class="filterbar" method="get">';ui_range($f);ui_select('player_id','선수',$options,$f['player_id']);ui_select('metric','지표',metric_options(),$f['metric']);ui_select('span','이동평균 기록 수',[2=>'2시즌',3=>'3시즌'],$f['span']);ui_submit('pages/analysis/window.php');echo '</form>';if($p)echo '<div class="profile-actions">'.ui_watch($p['player_id'],'pages/analysis/window.php').ui_player($p).'</div>';ui_note('이전 값은 바로 앞 기록 시즌이며 연속된 해가 아닐 수 있습니다. 이동평균·누적에는 조회 시작 연도 이전 기록도 포함됩니다. KBO WAR·나이는 미확보입니다.');ui_chart(strtoupper($f['metric']).' 추이',$rows,['metric_value'=>strtoupper($f['metric']),'moving_avg'=>'이동평균','league_avg'=>'리그 FA 선수 평균']);$cols=['year_id'=>'연도','age'=>'나이','team_ids'=>'구단','metric_value'=>ui_number('metric_value','지표',3),'prev_year'=>'이전 기록 연도','prev_value'=>ui_number('prev_value','이전 값',3),'change'=>ui_number('change','변화',3),'moving_avg'=>ui_number('moving_avg','이동평균',3),'league_avg'=>ui_number('league_avg','리그 평균',3),'league_rank'=>'리그 순위','league_count'=>'유효 선수 수','contract_season'=>'FA 계약 연차'];if($f['metric']==='war')$cols['cumulative']=ui_number('cumulative','누적 WAR',1);ui_table('시즌별 분석',$rows,$cols);
+ui_end();

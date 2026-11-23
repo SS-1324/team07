@@ -1,23 +1,4 @@
 <?php
-// pages/contracts/list.php
-// 담당: 프론트 (이름) / 쿼리: 백엔드 (이름)
-// 과제 요건: SELECT, DELETE
-// 만드는 방법은 pages/teams/list.php 를 따라 한다. ① 입력 읽기 → ② 백엔드 함수 호출 → ③ HTML 출력
-
-require_once __DIR__ . '/../../backend/bootstrap.php';
-
-$pageTitle  = 'FA 계약 목록';
-$activeMenu = 'contracts';
-require __DIR__ . '/../../layout/header.php';
-?>
-
-<section class="panel todo">
-    <p>아직 만들지 않은 화면입니다. (과제 요건: SELECT, DELETE)</p>
-    <ul>
-        <li>필터: 리그, 시즌, 구단, 포지션, 선수 이름 검색</li>
-        <li>표: 선수, 원소속팀 → 영입팀, 기간, 총액, AAV</li>
-        <li>행마다 수정 링크(pages/contracts/edit.php)와 삭제 버튼(actions/contract_delete.php 로 POST)</li>
-    </ul>
-</section>
-
-<?php require __DIR__ . '/../../layout/footer.php'; ?>
+require_once __DIR__.'/../../layout/ui.php';
+$f=['league'=>input_choice('league',['MLB','KBO'],'KBO'),'season'=>input_int('season',2024),'team'=>input_str('team'),'role'=>input_choice('role',['','P','B'],''),'q'=>input_str('q')];$sort=input_choice('sort',['aav','total_value','start_year','years','player_name'],'aav');$rows=contracts_list($f,$sort);ui_start('FA 계약 목록','contracts','계약을 조회하고 등록·수정·삭제할 수 있습니다.');echo '<form class="filterbar" method="get">';ui_league($f['league']);ui_select('season','유효 시즌',ui_years(),$f['season']);ui_select('team','영입 구단',ui_teams($f['league']),$f['team']);ui_select('role','역할',[''=>'전체']+role_options(),$f['role']);ui_input('q','선수 이름',$f['q'],'search');ui_select('sort','정렬',['aav'=>'AAV','total_value'=>'총액','start_year'=>'시작 연도','years'=>'기간','player_name'=>'선수 이름'],$sort);ui_submit('pages/contracts/list.php');echo '</form>'.ui_link('pages/contracts/add.php','+ FA 계약 등록',[],'primary');ui_note('등록·수정·삭제는 실제 DB와 구단 FA 지출을 변경합니다.');ui_table('계약 목록',$rows,ui_contract_columns(true));
+ui_end();

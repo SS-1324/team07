@@ -28,28 +28,12 @@ $menu = [
 ];
 $flash = flash_take();
 ?>
-<!doctype html>
-<html lang="ko">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= h($pageTitle) ?> · FA Contract Value</title>
-    <link rel="stylesheet" href="<?= h(url('assets/css/style.css')) ?>">
-</head>
-<body>
-<aside class="sidebar">
-    <a class="brand" href="<?= h(url('index.php')) ?>">FA Contract Value</a>
-    <nav>
-        <?php foreach ($menu as $groupName => $items): ?>
-            <p class="nav-group"><?= h($groupName) ?></p>
-            <?php foreach ($items as $key => [$label, $path]): ?>
-                <a class="<?= $key === $activeMenu ? 'active' : '' ?>" href="<?= h(url($path)) ?>"><?= h($label) ?></a>
-            <?php endforeach; ?>
-        <?php endforeach; ?>
-    </nav>
-</aside>
-<main class="content">
-    <h1><?= h($pageTitle) ?></h1>
-    <?php if ($flash): ?>
-        <p class="flash flash-<?= h($flash['type']) ?>"><?= h($flash['message']) ?></p>
-    <?php endif; ?>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= h($pageTitle) ?> · DIAMONDATA</title>
+<?php foreach(['frontend-base','frontend-modern','live'] as $css): ?><link rel="stylesheet" href="<?= h(url('assets/css/'.$css.'.css')) ?>"><?php endforeach; ?>
+<script defer src="<?= h(url('assets/js/live.js')) ?>"></script></head><body><div id="diamondata-app">
+<a class="skip" href="#dd-main">본문 바로가기</a><aside class="rail"><a class="brand" href="<?= h(url('index.php')) ?>"><b>D</b> DIAMONDATA<i></i></a><p class="rail-sub">BASEBALL DATA WORKSPACE</p><nav id="dd-nav" aria-label="주 메뉴">
+<?php foreach($menu as $group=>$items): ?><p><?= h($group) ?></p><?php foreach($items as $key=>[$label,$path]): ?><a class="nav-link <?= $key===$activeMenu?'active':'' ?>" <?= $key===$activeMenu?'aria-current="page"':'' ?> href="<?= h(url($path)) ?>"><?= h($label) ?></a><?php endforeach;endforeach; ?>
+</nav><div class="rail-bottom"><i></i> TEAM 07<small>계약과 성적 사이, 데이터로 찾는 가치</small></div></aside><div class="shell"><header class="topbar"><div><button id="dd-menu" aria-controls="dd-nav" aria-expanded="false">☰ 메뉴</button><span class="crumb-parent">워크스페이스</span><span class="slash">/</span><strong><?= h($pageTitle) ?></strong></div><span class="mode">MariaDB · 실제 조회</span></header><main id="dd-main">
+<?php if($activeMenu==='teams'): ?><section class="stadium-banner"><img class="stadium-photo" src="<?= h(url('assets/img/stadium.webp')) ?>" alt="AI로 생성한 가상 야구장 전경" width="1536" height="1024"><div class="stadium-copy"><span class="stadium-kicker">BEYOND THE SCOREBOARD</span><h2>기록 너머의 가치,<br>데이터로 읽는 야구.</h2><p>선수의 계약부터 시즌 성적까지.<br>당신의 야구에 새로운 관점을 더하세요.</p><a class="stadium-cta" href="<?= h(url('pages/players/search.php')) ?>">선수 데이터 탐색 ↗</a></div><div class="stadium-caption"><span>DIAMONDATA / FIELD NOTES</span><span>AI-generated stadium</span></div></section><?php endif; ?>
+<div class="page-heading"><div><p class="eyebrow">FA CONTRACT VALUE</p><h1><?= h($pageTitle) ?></h1><p><?= h($subtitle??'') ?></p></div></div>
+<?php if($flash): ?><p class="notice" role="status"><?= h($flash['message']) ?></p><?php endif; ?>

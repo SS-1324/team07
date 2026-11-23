@@ -1,0 +1,78 @@
+/* DIAMONDATA · Field Notes visual theme. Product colors are intentionally fixed. */
+#diamondata-app{--bg:#f5f6f4;--ink:#172b32;--muted:#63716f;--line:#e3e8e3;--green:#17674f;--nav:#fff;grid-template-columns:232px minmax(0,1fr);font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','Malgun Gothic',sans-serif;letter-spacing:-.2px}
+#diamondata-app .rail{background:#fff;color:#52615e;padding:34px 18px;border-right:1px solid var(--line)}
+#diamondata-app .brand{color:#152e2b;letter-spacing:-.6px;font-size:17px;gap:8px}
+#diamondata-app .brand b{background:#163e34;color:#d4f1b3;border-radius:50%;height:32px;width:32px;font-size:17px}
+#diamondata-app .brand i{display:none}
+#diamondata-app .rail-sub{color:#75847e;font-size:10px;letter-spacing:1.2px;margin:16px 0 40px}
+#diamondata-app nav p{color:#819089;letter-spacing:.6px;font-size:11px;margin:28px 12px 10px}
+#diamondata-app nav button{color:#56645f;border-radius:8px;padding:13px 12px;transition:background .15s,color .15s}
+#diamondata-app nav button span{color:#809087;font-size:18px}
+#diamondata-app nav button.active{background:#edf3e8;color:#1f5038;box-shadow:none;font-weight:700}
+#diamondata-app nav button.active span{color:#326b47}
+#diamondata-app nav button:hover{background:#f1f4ef;color:#244c39}
+#diamondata-app nav button b{background:#dce8d5;color:#35573c;border-radius:20px}
+#diamondata-app .rail-bottom{color:#42604c;border-top:1px solid var(--line);padding-top:22px;margin-top:60px}
+#diamondata-app .rail-bottom small{color:#6f7c73;font-size:11px}
+#diamondata-app .rail-bottom i{background:#56794f}
+#diamondata-app .topbar{background:#fff;height:74px;padding:0 36px;font-size:12px}
+#diamondata-app .topbar strong{font-weight:600}
+#diamondata-app main{padding:28px 36px 28px;max-width:1600px}
+#diamondata-app .stadium-banner{position:relative;isolation:isolate;overflow:hidden;background:#102633;border-radius:16px;min-height:328px;margin:0 0 34px;color:#fff}
+#diamondata-app .stadium-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 67%;z-index:-2}
+#diamondata-app .stadium-banner:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,22,31,.91),rgba(8,29,37,.63) 44%,rgba(6,22,28,.06) 100%);z-index:-1}
+#diamondata-app .stadium-copy{padding:36px 40px 54px;max-width:590px}
+#diamondata-app .stadium-kicker{font-size:10px;letter-spacing:2.5px;color:#d5eabb;font-weight:600}
+#diamondata-app .stadium-copy h2{font-size:36px;font-weight:650;letter-spacing:-1.7px;line-height:1.35;margin:16px 0 13px;word-break:keep-all}
+#diamondata-app .stadium-copy p{font-size:13px;line-height:1.8;color:#d0d9d8;margin:0 0 23px;word-break:keep-all}
+#diamondata-app .stadium-cta{display:inline-flex;align-items:center;gap:28px;background:#d0edaa;color:#19362a;border:0;border-radius:7px;padding:12px 17px;font-weight:650;font-size:12px;min-height:44px}
+#diamondata-app .stadium-cta:hover{background:#e0f5c5}
+#diamondata-app .stadium-cta span{font-size:18px;line-height:1}
+#diamondata-app .stadium-caption{position:absolute;bottom:17px;left:40px;right:24px;display:flex;justify-content:space-between;gap:12px;color:#e1e7e1;font-size:9px;letter-spacing:1.4px}
+#diamondata-app .stadium-caption span:last-child{letter-spacing:.3px;color:#d6dfda}
+#diamondata-app h1{font-size:25px;font-weight:650;letter-spacing:-1px}
+#diamondata-app .page-heading{margin-bottom:24px;align-items:flex-start}
+#diamondata-app .eyebrow{font-size:10px;letter-spacing:1.8px;color:#657c5b;margin-bottom:8px}
+#diamondata-app #dd-subtitle{color:#68756e;font-size:12px;margin-top:8px}
+#diamondata-app .mode{border:0;background:#e9eee5;color:#4a6548;border-radius:20px;padding:7px 11px;font-size:10px}
+#diamondata-app .filterbar{border:1px solid #e3e8e1;border-radius:12px;padding:17px 20px;gap:12px;box-shadow:0 2px 6px #1a392503}
+#diamondata-app label{color:#67756b;font-weight:500;font-size:11px}
+#diamondata-app input:not([type=checkbox]),#diamondata-app select{border-color:#dee5da;border-radius:7px;background:#fcfdfb;color:#223d2e;min-height:40px}
+#diamondata-app button.primary{background:#1e4c3e;border-color:#1e4c3e;border-radius:7px;min-height:40px}
+#diamondata-app button.primary:hover{background:#28634e}
+#diamondata-app button.secondary{border-color:#dfe6dc;border-radius:7px;min-height:40px;background:#fff}
+#diamondata-app button.secondary:hover{background:#f4f7f1}
+#diamondata-app .stats{gap:16px;margin-bottom:24px}
+#diamondata-app .stat{border:1px solid #e1e7dc;border-radius:12px;padding:21px 23px;background:#fff}
+#diamondata-app .stat:first-child{background:#edf3e7;border:1px solid #dce7d2;padding-top:21px}
+#diamondata-app .stat-label{color:#65715d;font-size:11px}
+#diamondata-app .stat-value{color:#173e30;font-size:31px;letter-spacing:-1.1px;font-weight:600;margin:10px 0 5px}
+#diamondata-app .stat-note{font-size:11px;color:#75816e}
+#diamondata-app .panel{border:1px solid #e1e6de;border-radius:12px;margin-bottom:24px;box-shadow:0 3px 10px #1b352203}
+#diamondata-app .panel-head{padding:21px 23px;border-bottom:1px solid #edf0e9}
+#diamondata-app .panel-head h2{font-size:14px;font-weight:650;letter-spacing:-.3px}
+#diamondata-app th{background:#fafbf8;color:#7a8675;font-size:11px;padding-top:13px;padding-bottom:13px}
+#diamondata-app td{padding-top:16px;padding-bottom:16px;border-color:#edf0e9}
+#diamondata-app tbody tr:hover{background:#f8fbf4}
+#diamondata-app .crest{border-radius:50%;background:#f0f4eb;color:#53684d;width:35px;height:35px;border:1px solid #e3e9db;font-size:10px}
+#diamondata-app .entity strong{font-weight:600;font-size:12px}
+#diamondata-app .entity small{color:#818a7a;font-size:10px}
+#diamondata-app .tag{border-radius:20px;background:#f0f3ec;color:#6a775f;padding:4px 9px;font-weight:500}
+#diamondata-app .tag.green{background:#eaf2df;color:#4e7139}
+#diamondata-app .panel-foot{border-color:#edf0e9;padding:14px 23px;font-size:11px}
+#diamondata-app .bar-track{height:9px;background:#eef2e7;border-radius:10px}
+#diamondata-app .bar-fill{background:#659053;border-radius:10px}
+#diamondata-app .bar-row{margin:19px 0}
+#diamondata-app .chart-body{padding:22px}
+#diamondata-app .hero{border-radius:12px;padding:28px;background:linear-gradient(110deg,#edf4e5,#fff 70%);border-color:#dfe7d7}
+#diamondata-app .tabs button{border-radius:20px;background:#f5f7f0;border-color:#e4e9dd;color:#617454}
+#diamondata-app .tabs button.selected{background:#1d4c3d;border-color:#1d4c3d;color:white}
+#diamondata-app .notice{background:#eef3e8;border-color:#dde7d2;color:#4b6543;border-radius:10px}
+#diamondata-app .notice.amber{background:#fff8e9;border-color:#eee2c6;color:#866b39}
+#diamondata-app .compare-strip{background:#edf4e3;border-color:#dae6cc;border-radius:10px}
+#diamondata-app .footer{color:#7b8978;padding-top:24px;margin-top:18px}
+#diamondata-app dialog{border-radius:16px}
+@media(min-width:1500px){#diamondata-app .stadium-banner{min-height:370px}#diamondata-app .stadium-copy{padding-top:44px}#diamondata-app .stadium-copy h2{font-size:43px}}
+@media(max-width:1150px){#diamondata-app{grid-template-columns:205px minmax(0,1fr)}#diamondata-app .rail{padding:30px 13px}#diamondata-app .brand{font-size:15px}#diamondata-app main{padding:24px}#diamondata-app .topbar{padding:0 24px}#diamondata-app .stadium-copy{padding:31px 28px 54px}#diamondata-app .stadium-copy h2{font-size:32px}#diamondata-app .stadium-caption{left:28px}#diamondata-app .stat{padding:18px 16px}#diamondata-app .stat:first-child{padding-top:18px}#diamondata-app .stat-value{font-size:27px}}
+@media(max-width:760px){#diamondata-app{display:block}#diamondata-app .rail{padding:18px 20px;border-bottom:1px solid var(--line)}#diamondata-app .brand{font-size:17px}#diamondata-app .topbar{height:58px;padding:0 18px}#diamondata-app main{padding:18px 15px 24px}#diamondata-app .stadium-banner{min-height:330px;border-radius:12px;margin-bottom:28px}#diamondata-app .stadium-copy{padding:29px 23px 54px}#diamondata-app .stadium-copy h2{font-size:29px;letter-spacing:-1.3px}#diamondata-app .stadium-photo{object-position:62% center}#diamondata-app .stadium-caption{left:23px;right:18px;flex-wrap:wrap;font-size:8px;gap:5px}#diamondata-app .stadium-banner:after{background:linear-gradient(90deg,#061b29eb,#0923379e 65%,#0b22324a)}#diamondata-app .stadium-kicker{font-size:9px;letter-spacing:1.6px}#diamondata-app h1{font-size:23px}#diamondata-app .stats{gap:10px}#diamondata-app .stat,#diamondata-app .stat:first-child{padding:17px}#diamondata-app .stat-value{font-size:25px;margin:0}#diamondata-app input:not([type=checkbox]),#diamondata-app select{font-size:16px}#diamondata-app .filterbar{padding:16px}#diamondata-app .mode{max-width:100px}#diamondata-app .panel-head{padding:18px}#diamondata-app .chart-body{padding:16px}#diamondata-app .panel-foot{padding:14px 16px}#diamondata-app .hero{padding:22px}}
+@media(prefers-reduced-motion:reduce){#diamondata-app nav button{transition:none}}
