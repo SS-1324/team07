@@ -76,30 +76,52 @@
 | 1. 그룹별 집계 | `analysis_aggregate($league, $yearFrom, $yearTo, $groupBy, $role)` | 리그 select, 연도 범위 select 2개, 묶을 기준 **체크박스** (`input_choices('group', array_keys(aggregate_group_options()))`, 1~3개), 투수/타자 라디오 |
 | 2. 롤업/드릴다운 | `analysis_rollup($league, $yearFrom, $yearTo, $level, $teamId)` | 리그, 연도 범위, 단계 **라디오** (`league`/`team`/`year`). 구단 행 클릭 → `$teamId` 넣고 `year` 단계로 |
 |  | `analysis_drill_contracts($teamId, $year)` | 연도 행 클릭 → 그 구단·시즌의 계약과 선수 성적 |
-| 3. 효율 순위 | `analysis_ranking($f)` / `analysis_ranking_quartiles($f)` | 리그, 연도 범위, 지표 select, 순위 범위 라디오 (`year` 연도별 / `all` 전체), 투수/타자, 포지션, 최소 총액 입력, 상위 N 숫자 입력 |
+| 3. 효율 순위 | `analysis_ranking($f)` / `analysis_ranking_quartiles($f)` | 리그, 연도 범위, 지표 select, 순위 범위 라디오 (`year` 연도별 / `all` 전체), 투수/타자, 포지션, 최소 총액 입력 (리그를 하나 골랐을 때만 적용), 최소 시즌 수 숫자 입력 (기본 2, 1~10), 상위 N 숫자 입력 |
 | 4. 시즌 추이 | `analysis_window($playerId, $yearFrom, $yearTo, $metric, $span)` | 선수 select, 연도 범위, 지표 select, 이동평균 2/3년 라디오 |
 
 연도 select 범위는 `contract_year_range()` (min_year, max_year) 또는 `seasons_all()`. 시작·끝 연도를 거꾸로 골라도 함수가 알아서 바꿔 처리함.
 
 ### 돌려주는 키
 
-**analysis_aggregate**: league_id, currency, *고른 기준 키들* (예: `role`, `years_band`), contracts, avg_aav, max_aav, min_aav, sum_total, avg_years, seasons, war, war_per_season, ops, era, cost_per_war
-- `cost_per_war` = 계약 기간 지급액 ÷ WAR 합 (WAR 없거나 0 이하면 null → KBO 는 항상 null)
+**analysis_aggregate**: league_id, currency, *고른 기준 키들* (예: `role`, `years_band`), contracts, avg_aav, max_aav, min_aav, sum_total, avg_years, seasons, paid_seasons, war, war_adj, war_per_season, ops, era, cost_per_war
+- `seasons` = 기록이 있는 시즌 수 합, `paid_seasons` = 연봉이 나간 시즌 수 합 (부상·방출 등으로 기록이 없는 해도 포함)
+- `war` = 기록 그대로의 WAR 합, `war_adj` = 2020 MLB 단축 시즌을 정규 시즌으로 환산한 WAR 합
+- `war_per_season` = war_adj ÷ paid_seasons (기록이 없는 해는 WAR 0 으로 들어감)
+- `cost_per_war` = 지급액 (AAV × paid_seasons) ÷ war_adj (환산 WAR 없거나 0 이하면 null → KBO 는 항상 null)
+- 묶음 기준 `age_band` (계약 시 나이): 계약 첫해 6월 30일 기준 만 나이. KBO 도 생년월일이 채워져 같이 묶임
 
-**analysis_rollup**: row_level (`league`/`team`/`year`), league_id, currency, team_id, team_name, year_id, seasons, fa_payroll, wins, losses, win_pct, postseason_cnt, payroll_per_win, contracts_signed
+**analysis_rollup**: row_level (`league`/`team`/`year`), league_id, currency, team_id, team_name, year_id, seasons, fa_payroll, wins, losses, win_pct, postseason_cnt, payroll_per_win, contracts_signed, league_rank, rank_group_size, rank_pct, prev_year, prev_rank, prev_rank_pct, rank_pct_change
 - `row_level` 로 소계 행을 구분해 굵게 표시. 리그 소계는 team_id·team_name 이 null, 구단 소계는 year_id 가 null.
+- `payroll_per_win` = FA 지출 ÷ 승수. 2020 MLB 는 승수를 정규 시즌으로 환산해서 나눔 (`wins` 는 기록 그대로)
+- 순위 변화 키 (`league_rank` ~ `rank_pct_change`) 는 **연도 행에만** 값이 있고 리그·구단 소계 행은 모두 null
+  - `league_rank`: 그 해 순위 (MLB 는 AL/NL 안, KBO 는 리그 전체), `rank_group_size`: 순위를 매긴 팀 수 (MLB 15, KBO 10, KBO 2014 는 9)
+  - `rank_pct` = (순위 − 1) ÷ (팀 수 − 1) × 100. 0 = 1위, 100 = 꼴찌 (팀 수가 다른 해끼리도 비교 가능)
+  - `prev_year`·`prev_rank`·`prev_rank_pct`: 그 구단의 바로 앞 기록 시즌 값 (연도 범위 첫 해에도 나옴)
+  - `rank_pct_change` = prev_rank_pct − rank_pct. **양수면 순위 상승** → 그 해 `contracts_signed` 와 같이 보면 FA 영입 전후 비교
 
 **analysis_drill_contracts**: contract_id, player_id, player_name, start_year, end_year, years, aav, total_value, currency, contract_season (몇 년차), games, war, pa, ops, ip, era
 
-**analysis_ranking** (`$f` 키: `league`, `year_from`, `year_to`, `metric` (`war`/`ops`/`era`), `scope`, `role`, `position`, `min_total`, `top`):
-contract_id, player_id, player_name, league_id, currency, to_team_name, start_year, end_year, years, total_value, aav, role, primary_pos, seasons, paid, war, ops, era, metric_value, metric_rank, aav_rank, aav_quartile, metric_pct, group_size
-- `metric_value`: war 이면 WAR 1당 비용(낮을수록 좋음), ops 는 OPS, era 는 ERA
+**analysis_ranking** (`$f` 키: `league`, `year_from`, `year_to`, `metric` (`war`/`ops`/`era`), `scope`, `role`, `position`, `min_total`, `min_seasons`, `top`):
+contract_id, player_id, player_name, league_id, currency, to_team_name, start_year, end_year, years, total_value, aav, role, primary_pos, seasons, paid_seasons, paid, war, war_adj, ops, era, metric_value, metric_rank, aav_rank, aav_quartile, metric_pct, group_size, war_per_season, wps_pct, grade
+- `min_total`: 리그 단위 금액 그대로 (MLB 달러, KBO 만원). `league` 가 `''` (전체) 이면 무시됨
+- `min_seasons`: 이 시즌 수 이상인 계약만 (기본 2, 1~10, 1년 계약까지 보려면 1). war 지표는 연봉이 나간 시즌(`paid_seasons`), ops/era 는 기록이 있는 시즌(`seasons`) 기준
+- `paid` = AAV × paid_seasons (기록이 없는 해도 연봉은 나간 것으로 셈)
+- `metric_value`: war 이면 환산 WAR 1당 비용 = paid ÷ war_adj (낮을수록 좋음), ops 는 OPS, era 는 ERA
+  - war 지표에서 war_adj 가 0 이하인 계약도 목록에 남음. 이때 `metric_value` 는 null 이고 순위는 WAR 양수 계약들 뒤 → 화면에서 "-" 등으로 표시
 - `aav_quartile`: 리그 안 몸값 4분위 (1 = 가장 비싼 25%)
 - `metric_rank` 와 `aav_rank` 차이가 크면 "몸값 대비 잘한/못한 계약"
+- `war_per_season` = war_adj ÷ paid_seasons, `wps_pct`: 리그 안 시즌당 WAR 상위 몇 % (KBO 는 null)
+- `grade`: 고른 지표와 상관없이 WAR 기준 판정. `'bad'` = war_adj 0 이하, `'good'` = bad 가 아니고 wps_pct 25 이하 (리그 상위 25%), null = 그 사이 또는 KBO
+  - 비교 대상은 이 화면의 조건(연도·역할·포지션·최소 총액·최소 시즌)을 통과한 같은 리그 계약
 
-**analysis_ranking_quartiles**: league_id, currency, aav_quartile, contracts, min_aav, max_aav, avg_aav, avg_metric, avg_rank_pct
+**analysis_ranking_quartiles**: league_id, currency, aav_quartile, contracts, min_aav, max_aav, avg_aav, avg_metric, avg_rank_pct, war_le0, good_contracts, bad_contracts, good_pct, bad_pct
+- `avg_metric`: metric_value 평균. war 지표는 WAR 양수 계약만의 평균 (0 이하는 null 이라 빠짐). `avg_rank_pct` 는 0 이하 계약 순위까지 포함
+- `war_le0`: 환산 WAR 0 이하라 metric_value 가 null 인 계약 수 (ops/era 지표는 항상 0)
+- `good_contracts`·`bad_contracts`: grade 가 good/bad 인 계약 수, `good_pct`·`bad_pct`: 그 분위 안 비율(%). KBO 는 네 키 모두 null
 
-**analysis_window**: year_id, age, team_ids, games, pa, ip, war, ops, era, metric_value, prev_year, prev_value, change, cumulative, moving_avg, league_avg, league_rank, league_count, contract_id, contract_season
+**analysis_window**: year_id, age, team_ids, games, pa, ip, war, ops, era, metric_value, season_scale, prev_year, prev_value, change, cumulative, moving_avg, league_avg, league_rank, league_count, contract_id, contract_season
+- `metric_value`: war 지표면 단축 시즌을 정규 시즌으로 환산한 값 (`war` 키는 기록 그대로). `season_scale` = 환산 배율 (정규 시즌 1, 2020 MLB 2.7)
+- `age`: 그 해 6월 30일 기준 만 나이
 - `cumulative` 는 WAR 일 때만 의미 있음
 - `league_avg`·`league_rank` 는 같은 해 같은 리그 **FA 계약 선수들** 기준 (DB 에 그 선수들만 있음)
 - `contract_season` 이 있으면 계약 기간 중인 시즌 → 색으로 구분 추천
@@ -108,6 +130,8 @@ contract_id, player_id, player_name, league_id, currency, to_team_name, start_ye
 
 - MLB 시즌 기록은 계약 시작 **2년 전부터만** DB 에 있음. "계약 전" = 최대 2시즌.
 - 보장액(`guaranteed_value`)은 원자료에 없어서 전부 총액과 같음 → 화면에 굳이 보여줄 필요 없음.
-- 옵트아웃으로 계약 기간이 겹치는 선수 4명(코레아, 세스페데스, 워커, 카스테야노스)은 겹친 해 FA 지출이 두 번 더해져 있음.
+- 2020 MLB 는 60경기 단축 시즌. 분석의 비율 지표(WAR당 비용, 시즌당 WAR, 1승당 FA 지출, 시즌 추이)는 WAR·승수를 정규 시즌(162경기) 기준으로 환산해 계산함. 금액(AAV, fa_payroll)과 화면에 보이는 원래 기록(`war`, `wins`)은 바꾸지 않고, 환산값은 `war_adj` 등 별도 키로 돌려줌.
+- 분석의 계약 지급액은 계약 시작 ~ 실제 유효 마지막 해(계약 종료, 같은 선수의 다음 계약 시작 직전 해, DB 마지막 시즌 중 가장 이른 해)의 **모든 시즌**을 셈. 부상·방출로 기록이 없는 해도 연봉이 나간 해로 보고 WAR 0 으로 넣음 (KBO 는 WAR 이 없어 null 유지). 자진 은퇴처럼 실제로 연봉을 안 받은 해도 DB 에 구분이 없어 지급한 것으로 셈.
+- 옵트아웃으로 계약 기간이 겹치는 선수 4명(코레아, 세스페데스, 워커, 카스테야노스)은 `team_seasons.fa_payroll`(롤업의 FA 지출)에서 겹친 해가 두 번 더해져 있음. 분석의 계약별 지급액·순위는 다음 계약 시작 전 해에서 앞 계약을 잘라 계산하므로 중복되지 않음.
 - 오타니 AAV 7,000만 달러는 지급 유예가 반영 안 된 명목 금액.
 - 애슬레틱스는 `OAK`(~2024)와 `ATH`(2025) 두 구단으로 나뉘어 있음.
