@@ -33,7 +33,7 @@ MLB Spotrac 자료는 연도별 Free Agents 페이지를 참고합니다. 2016�
 - [2016](https://www.spotrac.com/mlb/free-agents/_/year/2016), [2017](https://www.spotrac.com/mlb/free-agents/_/year/2017), [2018](https://www.spotrac.com/mlb/free-agents/_/year/2018), [2019](https://www.spotrac.com/mlb/free-agents/_/year/2019)
 - [2020](https://www.spotrac.com/mlb/free-agents/_/year/2020), [2021](https://www.spotrac.com/mlb/free-agents/_/year/2021), [2022](https://www.spotrac.com/mlb/free-agents/_/year/2022), [2023](https://www.spotrac.com/mlb/free-agents/_/year/2023), [2024](https://www.spotrac.com/mlb/free-agents/_/year/2024)
 
-현재 `data/manual/kbo_players.csv`의 KBO 선수 132명은 `birth_date`가 비어 있습니다. 연령 분석에 사용할 생년월일 자료를 반영한 뒤 입력 CSV와 `dbinsert.sql`을 다시 생성해야 합니다.
+`data/manual/kbo_birth_dates.csv`에는 KBO 공식 선수 조회를 바탕으로 정리한 선수 ID·이름·생년월일과 동명이인 확인 메모가 있습니다. 이 자료를 `player_id`와 한국어 이름으로 대조해 `data/manual/kbo_players.csv` 132명에게 반영합니다. 생년월일 변경 후에는 `dbinsert.sql`을 다시 생성하고, DB 적재·검증을 마친 뒤 `dbdump.sql`을 다시 내보냅니다.
 
 ## 기존 Lahman 파일
 
