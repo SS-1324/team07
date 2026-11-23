@@ -1910,7 +1910,7 @@ INSERT INTO `player_seasons` (`player_id`, `year_id`, `stint`, `team_id`, `games
 ('k_jeonguram', 2021, 1, 'K_HAN', 50, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 44.7, 1, 32, 5.64),
 ('k_jeonguram', 2022, 1, 'K_HAN', 23, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 18.3, 0, 20, 2.95),
 ('k_jeonguram', 2023, 1, 'K_HAN', 52, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 40.3, 0, 30, 5.36),
-('k_jeonguram', 2024, 1, 'K_HAN', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.0, 0, 0, 0.00),
+('k_jeonguram', 2024, 1, 'K_HAN', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.0, 0, 0, NULL),
 ('k_jeonjunu', 2014, 1, 'K_LOT', 113, NULL, 470, 14, 66, 7, 0.292, 0.814, NULL, NULL, NULL, NULL),
 ('k_jeonjunu', 2016, 1, 'K_LOT', 25, NULL, 113, 2, 10, 3, 0.253, 0.723, NULL, NULL, NULL, NULL),
 ('k_jeonjunu', 2017, 1, 'K_LOT', 110, NULL, 496, 18, 69, 2, 0.321, 0.873, NULL, NULL, NULL, NULL),
