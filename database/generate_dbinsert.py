@@ -352,6 +352,18 @@ if len(ps) < n0:
     print(f'[warn] dropped {n0 - len(ps)} player_seasons rows without a matching team_seasons row')
 ps = ps[COLS['player_seasons']]
 if kbo_ps is not None:
+    kbo_ps = kbo_ps.copy()
+    # Non-numeric KBO values such as '-' (e.g. ERA of a 0-inning pitcher) become NULL.
+    # Without this the whole column is written as quoted strings and '-' breaks strict-mode import.
+    for c in COLS['player_seasons']:
+        if c in ('player_id', 'team_id'):
+            continue
+        raw = kbo_ps[c]
+        kbo_ps[c] = pd.to_numeric(raw, errors='coerce')
+        bad = raw.notna() & kbo_ps[c].isna()
+        if bad.any():
+            print(f'[warn] kbo_player_seasons.{c}: {int(bad.sum())} non-numeric value(s) -> NULL '
+                  f'{sorted(set(raw[bad].astype(str)))[:5]}')
     ps = pd.concat([ps, kbo_ps[COLS['player_seasons']]], ignore_index=True)
 ps = ps.sort_values(['player_id', 'year_id', 'stint'])
 assert not ps.duplicated(['player_id', 'year_id', 'stint']).any(), 'duplicate player_seasons PK'
