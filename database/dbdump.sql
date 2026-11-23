@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2026-11-23 05:09:05
+-- 生成日期： 2026-11-23 05:28:12
 -- 服务器版本： 10.4.28-MariaDB
 -- PHP 版本： 8.2.4
 
@@ -1445,6 +1445,17 @@ INSERT INTO `player_seasons` (`player_id`, `year_id`, `stint`, `team_id`, `games
 ('k_gimsangsu', 2023, 1, 'K_KT', 129, NULL, 512, 3, 56, 5, 0.271, 0.692, NULL, NULL, NULL, NULL),
 ('k_gimsangsu', 2024, 1, 'K_KT', 113, NULL, 420, 4, 45, 3, 0.276, 0.730, NULL, NULL, NULL, NULL),
 ('k_gimsangsu', 2025, 1, 'K_KT', 113, NULL, 423, 5, 47, 3, 0.254, 0.684, NULL, NULL, NULL, NULL),
+('k_gimsangsu2', 2015, 1, 'K_KIW', 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 5.0, 0, 2, 10.80),
+('k_gimsangsu2', 2016, 1, 'K_KIW', 67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 74.0, 6, 76, 4.62),
+('k_gimsangsu2', 2017, 1, 'K_KIW', 60, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 61.3, 0, 62, 3.82),
+('k_gimsangsu2', 2018, 1, 'K_KIW', 58, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 55.7, 2, 68, 5.17),
+('k_gimsangsu2', 2019, 1, 'K_KIW', 67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 56.7, 3, 60, 3.02),
+('k_gimsangsu2', 2020, 1, 'K_KIW', 60, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 51.3, 3, 48, 4.73),
+('k_gimsangsu2', 2021, 1, 'K_SSG', 50, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 58.3, 4, 44, 5.09),
+('k_gimsangsu2', 2022, 1, 'K_SSG', 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 8.0, 0, 3, 9.00),
+('k_gimsangsu2', 2023, 1, 'K_LOT', 67, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 52.0, 4, 36, 3.12),
+('k_gimsangsu2', 2024, 1, 'K_LOT', 74, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 73.7, 8, 56, 4.15),
+('k_gimsangsu2', 2025, 1, 'K_LOT', 45, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 36.7, 0, 27, 6.38),
 ('k_gimseonbin', 2014, 1, 'K_KIA', 33, NULL, 98, 0, 9, 2, 0.290, 0.646, NULL, NULL, NULL, NULL),
 ('k_gimseonbin', 2016, 1, 'K_KIA', 6, NULL, 27, 0, 0, 1, 0.360, 0.905, NULL, NULL, NULL, NULL),
 ('k_gimseonbin', 2017, 1, 'K_KIA', 137, NULL, 529, 5, 64, 4, 0.370, 0.897, NULL, NULL, NULL, NULL),
@@ -1709,7 +1720,8 @@ INSERT INTO `player_seasons` (`player_id`, `year_id`, `stint`, `team_id`, `games
 ('k_imchangmin', 2022, 1, 'K_DOO', 32, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 27.3, 0, 21, 3.95),
 ('k_imchangmin', 2023, 1, 'K_KIW', 51, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 46.7, 2, 40, 2.51),
 ('k_imchangmin', 2024, 1, 'K_SAM', 60, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 54.3, 2, 50, 3.98),
-('k_imchangmin', 2025, 1, 'K_SAM', 16, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 13.0, 1, 6, 4.85),
+('k_imchangmin', 2025, 1, 'K_SAM', 16, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 13.0, 1, 6, 4.85);
+INSERT INTO `player_seasons` (`player_id`, `year_id`, `stint`, `team_id`, `games`, `war`, `pa`, `hr`, `rbi`, `sb`, `avg`, `ops`, `ip`, `p_wins`, `p_so`, `era`) VALUES
 ('k_imchangyu', 2016, 1, 'K_LG', 15, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 47.0, 3, 38, 6.51),
 ('k_imchangyu', 2017, 1, 'K_LG', 27, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 124.3, 6, 113, 4.63),
 ('k_imchangyu', 2018, 1, 'K_LG', 29, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 146.7, 11, 125, 5.77),
@@ -1720,8 +1732,7 @@ INSERT INTO `player_seasons` (`player_id`, `year_id`, `stint`, `team_id`, `games
 ('k_imchangyu', 2023, 1, 'K_LG', 30, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 144.7, 14, 103, 3.42),
 ('k_imchangyu', 2024, 1, 'K_LG', 25, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 134.0, 10, 136, 3.83),
 ('k_imchangyu', 2025, 1, 'K_LG', 27, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 160.3, 11, 107, 3.03),
-('k_imyeonggi', 2014, 1, 'K_SSG', 83, NULL, 314, 4, 28, 8, 0.368, 0.884, NULL, NULL, NULL, NULL);
-INSERT INTO `player_seasons` (`player_id`, `year_id`, `stint`, `team_id`, `games`, `war`, `pa`, `hr`, `rbi`, `sb`, `avg`, `ops`, `ip`, `p_wins`, `p_so`, `era`) VALUES
+('k_imyeonggi', 2014, 1, 'K_SSG', 83, NULL, 314, 4, 28, 8, 0.368, 0.884, NULL, NULL, NULL, NULL),
 ('k_imyeonggi', 2015, 1, 'K_SSG', 137, NULL, 582, 3, 35, 22, 0.315, 0.765, NULL, NULL, NULL, NULL),
 ('k_imyeonggi', 2016, 1, 'K_SSG', 99, NULL, 326, 1, 22, 14, 0.272, 0.666, NULL, NULL, NULL, NULL),
 ('k_imyeonggi', 2017, 1, 'K_KIA', 115, NULL, 512, 9, 63, 8, 0.332, 0.830, NULL, NULL, NULL, NULL),
@@ -2223,7 +2234,8 @@ INSERT INTO `player_seasons` (`player_id`, `year_id`, `stint`, `team_id`, `games
 ('k_yugangnam', 2025, 1, 'K_LOT', 110, NULL, 350, 5, 38, 0, 0.274, 0.735, NULL, NULL, NULL, NULL),
 ('k_yuhanjun', 2014, 1, 'K_KIW', 122, NULL, 469, 20, 91, 2, 0.316, 0.925, NULL, NULL, NULL, NULL),
 ('k_yuhanjun', 2015, 1, 'K_KIW', 139, NULL, 598, 23, 116, 3, 0.362, 1.009, NULL, NULL, NULL, NULL),
-('k_yuhanjun', 2016, 1, 'K_KT', 110, NULL, 460, 14, 64, 4, 0.336, 0.897, NULL, NULL, NULL, NULL),
+('k_yuhanjun', 2016, 1, 'K_KT', 110, NULL, 460, 14, 64, 4, 0.336, 0.897, NULL, NULL, NULL, NULL);
+INSERT INTO `player_seasons` (`player_id`, `year_id`, `stint`, `team_id`, `games`, `war`, `pa`, `hr`, `rbi`, `sb`, `avg`, `ops`, `ip`, `p_wins`, `p_so`, `era`) VALUES
 ('k_yuhanjun', 2017, 1, 'K_KT', 133, NULL, 497, 13, 68, 0, 0.306, 0.806, NULL, NULL, NULL, NULL),
 ('k_yuhanjun', 2018, 1, 'K_KT', 121, NULL, 480, 20, 83, 1, 0.339, 0.939, NULL, NULL, NULL, NULL),
 ('k_yuhanjun', 2019, 1, 'K_KT', 139, NULL, 562, 14, 86, 3, 0.317, 0.826, NULL, NULL, NULL, NULL),
@@ -2234,8 +2246,7 @@ INSERT INTO `player_seasons` (`player_id`, `year_id`, `stint`, `team_id`, `games
 ('k_yuhuigwan', 2016, 1, 'K_DOO', 30, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 185.7, 15, 102, 4.41),
 ('k_yuhuigwan', 2017, 1, 'K_DOO', 30, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 188.7, 11, 106, 4.53),
 ('k_yuhuigwan', 2018, 1, 'K_DOO', 29, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 141.0, 10, 81, 6.70),
-('k_yuhuigwan', 2019, 1, 'K_DOO', 28, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 166.3, 11, 64, 3.25);
-INSERT INTO `player_seasons` (`player_id`, `year_id`, `stint`, `team_id`, `games`, `war`, `pa`, `hr`, `rbi`, `sb`, `avg`, `ops`, `ip`, `p_wins`, `p_so`, `era`) VALUES
+('k_yuhuigwan', 2019, 1, 'K_DOO', 28, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 166.3, 11, 64, 3.25),
 ('k_yuhuigwan', 2020, 1, 'K_DOO', 27, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 136.3, 10, 56, 5.02),
 ('k_yuhuigwan', 2021, 1, 'K_DOO', 15, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 63.0, 4, 23, 7.71),
 ('k_yungilhyeo', 2014, 1, 'K_SSG', 59, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 57.7, 3, 63, 3.90),
@@ -2920,7 +2931,7 @@ CREATE TABLE `pma__userconfig` (
 --
 
 INSERT INTO `pma__userconfig` (`username`, `timevalue`, `config_data`) VALUES
-('root', '2026-11-23 04:09:05', '{\"lang\":\"zh_CN\",\"Console\\/Mode\":\"show\",\"Export\\/file_template_database\":\"dbdump\"}');
+('root', '2026-11-23 04:28:12', '{\"lang\":\"zh_CN\",\"Console\\/Mode\":\"show\",\"Export\\/file_template_database\":\"dbdump\"}');
 
 -- --------------------------------------------------------
 
@@ -2968,7 +2979,7 @@ CREATE TABLE `teams` (
 
 INSERT INTO `teams` (`team_id`, `league_id`, `sub_league`, `team_name`, `city`) VALUES
 ('ARI', 'MLB', 'NL', 'Arizona Diamondbacks', 'Arizona'),
-('ATH', 'MLB', 'AL', 'Athletics', 'Athletics'),
+('ATH', 'MLB', 'AL', 'Athletics', 'West Sacramento'),
 ('ATL', 'MLB', 'NL', 'Atlanta Braves', 'Atlanta'),
 ('BAL', 'MLB', 'AL', 'Baltimore Orioles', 'Baltimore'),
 ('BOS', 'MLB', 'AL', 'Boston Red Sox', 'Boston'),
