@@ -40,3 +40,11 @@ MLB Spotrac 자료는 연도별 Free Agents 페이지를 참고합니다. 2016�
 ## 기존 Lahman 파일
 
 `data/lahman/`에는 `People.csv`, `Teams.csv`, `Batting.csv`, `Pitching.csv`, `Appearances.csv`가 있어야 합니다. 이 파일들은 현재 작업 폴더에 포함되어 있습니다.
+
+## dbdump.sql 만들기
+
+`dbdump.sql`은 phpMyAdmin 내보내기가 아니라 `mysqldump`로 만듭니다. phpMyAdmin으로 내보내면 `pma__*` 설정 테이블과 root 계정의 설정 값이 함께 들어갈 수 있습니다. `dbdrop.sql` → `dbcreate.sql` → `dbinsert.sql`로 DB를 적재·검증한 뒤 `database/` 폴더에서 아래 명령을 실행합니다. 프로젝트 테이블 6개만 내보냅니다.
+
+```
+C:\xampp\mysql\bin\mysqldump.exe -u team07 -pteam07 --default-character-set=utf8mb4 --single-transaction --result-file=dbdump.sql team07 leagues teams players team_seasons player_seasons fa_contracts
+```
