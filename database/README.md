@@ -1,10 +1,12 @@
 # 데이터 생성 입력 자료
 
-프로젝트 루트에서 `python3 generate_dbinsert.py`를 실행하면 `dbinsert.sql`을 생성합니다. 완전한 MLB + KBO 데이터 생성에는 아래 입력 파일이 모두 필요합니다. 일부 입력으로 시험하려면 `python3 generate_dbinsert.py --allow-incomplete`를 사용하세요. 이 옵션은 최종 제출용이 아닌 부분 SQL을 생성합니다.
+`python3 database/generate_dbinsert.py`를 실행하면 `database/dbinsert.sql`을 생성합니다. 입력 파일은 스크립트 옆의 `database/tools/` 아래에서 찾으므로 어느 폴더에서 실행해도 됩니다. 완전한 MLB + KBO 데이터 생성에는 아래 입력 파일이 모두 필요합니다.
+
+일부 입력으로 시험하려면 `python3 database/generate_dbinsert.py --allow-incomplete`를 사용하세요. 이 옵션은 최종 제출용이 아닌 부분 SQL을 `database/dbinsert_partial.sql`에 따로 만들고, `dbinsert.sql`은 바꾸지 않습니다. `dbinsert_partial.sql`은 커밋하지 않습니다(`database/.gitignore`).
 
 ## WAR
 
-`data/war/`에 다음 탭 구분 파일을 둡니다.
+`database/tools/war/`에 다음 탭 구분 파일을 둡니다. 두 파일 모두 저장소에 있습니다. `war_daily_bat.txt`(약 34MB)는 GitHub 웹 업로드 제한(25MB)을 넘으므로, 바꿀 때는 웹이 아니라 git 명령으로 커밋합니다.
 
 - `war_daily_bat.txt`
 - `war_daily_pitch.txt`
@@ -13,7 +15,7 @@
 
 ## KBO
 
-아래 CSV는 `data/manual/`에 둡니다. KBO ID는 ERD 규칙에 맞춰 `K_LG` 형식의 구단 ID와 `k_` 접두 선수 ID를 사용하고, 시즌 범위는 ERD의 2014–2025년과 맞춥니다.
+아래 CSV는 `database/tools/manual/`에 둡니다. KBO ID는 ERD 규칙에 맞춰 `K_LG` 형식의 구단 ID와 `k_` 접두 선수 ID를 사용하고, 시즌 범위는 ERD의 2014–2025년과 맞춥니다.
 
 - `kbo_teams.csv`: `team_id,team_name,city`
 - `kbo_team_seasons.csv`: `team_id,year_id,wins,losses,win_pct,league_rank,postseason,runs_scored,runs_allowed`
@@ -28,15 +30,15 @@
 
 ## 계약
 
-`data/manual/fa_contracts.csv`에는 MLB와 KBO 계약을 함께 둡니다. 필수 열은 `player_id,from_team_id,to_team_id,start_year,end_year,total_value`이며, `guaranteed_value,signed_date`는 선택 열입니다. 선수 ID와 구단 ID는 마스터 CSV의 ID와 정확히 일치해야 합니다. MLB 금액은 USD, KBO 금액은 만원 단위로 입력합니다.
+`database/tools/manual/fa_contracts.csv`에는 MLB와 KBO 계약을 함께 둡니다. 필수 열은 `player_id,from_team_id,to_team_id,start_year,end_year,total_value`이며, `guaranteed_value,signed_date`는 선택 열입니다. 선수 ID와 구단 ID는 마스터 CSV의 ID와 정확히 일치해야 합니다. MLB 금액은 USD, KBO 금액은 만원 단위로 입력합니다.
 
 MLB Spotrac 자료는 연도별 Free Agents 페이지를 참고합니다. 2016–2024년은 계약 금액 내림차순 상위 15건을 기준으로 정리합니다. 2024년 목록도 다른 연도와 같은 기준으로 맞춰 총 15건으로 구성했습니다. 일본·한국 리그에서 MLB로 온 선수처럼 원소속팀이 Lahman MLB 구단이 아닌 경우 `from_team_id`는 비워 둡니다.
 
 - [2016](https://www.spotrac.com/mlb/free-agents/_/year/2016), [2017](https://www.spotrac.com/mlb/free-agents/_/year/2017), [2018](https://www.spotrac.com/mlb/free-agents/_/year/2018), [2019](https://www.spotrac.com/mlb/free-agents/_/year/2019)
 - [2020](https://www.spotrac.com/mlb/free-agents/_/year/2020), [2021](https://www.spotrac.com/mlb/free-agents/_/year/2021), [2022](https://www.spotrac.com/mlb/free-agents/_/year/2022), [2023](https://www.spotrac.com/mlb/free-agents/_/year/2023), [2024](https://www.spotrac.com/mlb/free-agents/_/year/2024)
 
-`data/manual/kbo_birth_dates.csv`에는 KBO 공식 선수 조회를 바탕으로 정리한 선수 ID·이름·생년월일과 동명이인 확인 메모가 있습니다. 이 자료를 `player_id`와 한국어 이름으로 대조해 `data/manual/kbo_players.csv` 132명에게 반영합니다. 생년월일 변경 후에는 `dbinsert.sql`을 다시 생성하고, DB 적재·검증을 마친 뒤 `dbdump.sql`을 다시 내보냅니다.
+`database/tools/manual/kbo_birth_dates.csv`에는 KBO 공식 선수 조회를 바탕으로 정리한 선수 ID·이름·생년월일과 동명이인 확인 메모가 있습니다. 이 자료를 `player_id`와 한국어 이름으로 대조해 `database/tools/manual/kbo_players.csv` 132명에게 반영합니다. 생년월일 변경 후에는 `dbinsert.sql`을 다시 생성하고, DB 적재·검증을 마친 뒤 `dbdump.sql`을 다시 내보냅니다.
 
 ## 기존 Lahman 파일
 
-`data/lahman/`에는 `People.csv`, `Teams.csv`, `Batting.csv`, `Pitching.csv`, `Appearances.csv`가 있어야 합니다. 이 파일들은 현재 작업 폴더에 포함되어 있습니다.
+`database/tools/lahman/`에는 `People.csv`, `Teams.csv`, `Batting.csv`, `Pitching.csv`, `Appearances.csv`가 있어야 합니다. 이 파일들은 저장소에 포함되어 있습니다.
