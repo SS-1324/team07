@@ -1,6 +1,6 @@
 <?php
 // backend/queries/analysis.php
-// 담당: 백엔드 신수연
+// 담당: 백엔드 신수연, DB 안서연
 // 고급 분석 4종 쿼리 (각각 별도 메뉴에서 사용)
 //   1. analysis_aggregate()       여러 열 GROUP BY + SUM/AVG/MAX/MIN
 //   2. analysis_rollup()          GROUP BY ... WITH ROLLUP (리그 → 구단 → 연도), analysis_drill_contracts() 로 드릴다운
