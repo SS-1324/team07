@@ -4,12 +4,13 @@
 #          following the team's ERD v1 (leagues, teams, players, team_seasons,
 #          player_seasons, fa_contracts).
 #
-# INPUT FOLDERS (create them next to this script)
-#   data/lahman/   Lahman CSV files: People.csv, Teams.csv, Batting.csv,
+# INPUT FOLDERS (in tools/ next to this script, i.e. database/tools/ in the repo;
+#                paths are resolved from this file, so any working directory works)
+#   tools/lahman/  Lahman CSV files: People.csv, Teams.csv, Batting.csv,
 #                  Pitching.csv, Appearances.csv  (subfolders are searched)
-#   data/war/      Baseball-Reference WAR files: war_daily_bat.txt,
+#   tools/war/     Baseball-Reference WAR files: war_daily_bat.txt,
 #                  war_daily_pitch.txt
-#   data/manual/   Files the team prepares by hand:
+#   tools/manual/  Files the team prepares by hand:
 #     fa_contracts.csv   REQUIRED  player_id,from_team_id,to_team_id,start_year,
 #                        end_year,total_value[,guaranteed_value,signed_date]
 #                        player_id = bbrefID (MLB) or k_xxx (KBO);
@@ -21,8 +22,10 @@
 #     kbo_player_seasons.csv   REQUIRED for the full MLB + KBO dataset. Column
 #                        names must match the corresponding ERD table columns.
 #
-# RUN:  python generate_dbinsert.py      ->  dbinsert.sql (requires WAR + KBO files)
-#       python generate_dbinsert.py --allow-incomplete -> partial SQL for testing
+# RUN:  python generate_dbinsert.py      ->  dbinsert.sql next to this script
+#                                            (requires WAR + KBO files)
+#       python generate_dbinsert.py --allow-incomplete -> dbinsert_partial.sql for
+#                                            testing (never overwrites dbinsert.sql)
 import argparse
 import os
 import sys
@@ -39,10 +42,13 @@ parser.add_argument(
 ARGS = parser.parse_args()
 
 # ------------------------------------------------------------------ settings
-LAHMAN_DIR = 'data/lahman'
-WAR_DIR = 'data/war'
-MANUAL_DIR = 'data/manual'
-OUT_FILE = 'dbinsert.sql'
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+TOOLS_DIR = os.path.join(SCRIPT_DIR, 'tools')
+LAHMAN_DIR = os.path.join(TOOLS_DIR, 'lahman')
+WAR_DIR = os.path.join(TOOLS_DIR, 'war')
+MANUAL_DIR = os.path.join(TOOLS_DIR, 'manual')
+# A partial test export goes to a separate file so it can never replace the real dbinsert.sql
+OUT_FILE = os.path.join(SCRIPT_DIR, 'dbinsert_partial.sql' if ARGS.allow_incomplete else 'dbinsert.sql')
 DB_NAME = 'team07'
 YEAR_FIRST, YEAR_LAST = 2014, 2025   # season range loaded into team_seasons
 SEASONS_BEFORE_CONTRACT = 2          # seasons before start_year kept per contract
