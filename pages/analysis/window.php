@@ -49,19 +49,34 @@ if($p)echo '<div class="profile-actions">'.ui_watch($p['player_id'],'pages/analy
 
 $name = ['war' => '시즌당 환산 WAR', 'ops' => 'OPS', 'era' => 'ERA'][$compare['metric']];
 $digits = ['war' => 2, 'ops' => 3, 'era' => 2][$compare['metric']];
-ui_note('계약 시작 연도를 기준으로 같은 리그의 계약을 비교합니다. 계약 직전 2시즌 중 기록이 있는 시즌과 계약 기간을 비교하며, OPS는 두 기간 각각 200타석 이상, ERA는 각각 50이닝 이상이어야 합니다. 변화는 계약 중 값에서 계약 전 값을 뺀 값입니다. ERA는 감소할수록, WAR·OPS는 증가할수록 개선입니다.');
-ui_table('계약 전후 성과 비교 · '.$name, analysis_contract_compare($compare), [
+$signedChange = static fn($value) => $value === null ? '—' : sprintf('%+.'.$digits.'f', (float) $value);
+$contracts = analysis_contract_compare($compare);
+ui_note('계약 시작 연도를 기준으로 같은 리그의 계약을 비교합니다. 계약 직전 2시즌 중 기록이 있는 시즌과 계약 기간을 비교하며, OPS는 두 기간 각각 200타석 이상, ERA는 각각 50이닝 이상이어야 합니다. 변화는 계약 중 값에서 계약 전 값을 뺀 값입니다. ERA는 감소할수록, WAR·OPS는 증가할수록 개선입니다. WAR은 시즌당 값이고, 2020년 60경기 시즌은 162경기로 환산했습니다. 계약 중 시즌당 WAR은 기록이 없는 해도 연봉이 나간 시즌으로 세어 0으로 넣습니다.');
+if ($contracts) {
+    $first = $contracts[0];
+    ui_note(sprintf('%s 리그 평균 %s → %s (%s), %s건',
+        $compare['league'],
+        ui_num($first['league_avg_pre'], $digits),
+        ui_num($first['league_avg_in'], $digits),
+        $signedChange($first['league_avg_change']),
+        ui_num($first['league_count'])
+    ));
+}
+ui_table('계약 전후 성과 비교 · '.$name, $contracts, [
     'change_rank' => '리그 개선 순위',
     'player_name' => ['선수', 'ui_player'],
     'to_team_name' => '영입 구단',
     'start_year' => '계약 시작',
     'end_year' => '계약 종료',
+    'age' => '계약 시 나이',
+    'aav' => ui_money('aav', 'AAV'),
     'pre_seasons' => '계약 전 기록 시즌',
     'seasons' => '계약 중 기록 시즌',
     'paid_seasons' => '연봉 지급 시즌',
     'metric_pre' => ui_number('metric_pre', '계약 전 '.$name, $digits),
     'metric_in' => ui_number('metric_in', '계약 중 '.$name, $digits),
-    'metric_change' => ui_number('metric_change', '변화', $digits),
+    'metric_change' => ['변화', fn($r) => h($signedChange($r['metric_change']))],
+    'improved' => ['결과', fn($r) => h($r['improved'] ? '▲ 좋아짐' : '▼ 나빠짐')],
     'change_pct' => ui_number('change_pct', '개선 상위 %', 1),
 ]);
 ui_table('계약 전후 요약 · '.$groupOptions[$f['group']].' · '.$name, analysis_contract_compare_summary($compare), [
@@ -69,7 +84,7 @@ ui_table('계약 전후 요약 · '.$groupOptions[$f['group']].' · '.$name, ana
     'contracts' => '계약 수',
     'avg_pre' => ui_number('avg_pre', '계약 전 평균', $digits),
     'avg_in' => ui_number('avg_in', '계약 중 평균', $digits),
-    'avg_change' => ui_number('avg_change', '평균 변화', $digits),
+    'avg_change' => ['평균 변화', fn($r) => h($signedChange($r['avg_change']))],
     'improved_contracts' => '개선 계약 수',
     'improved_pct' => ui_number('improved_pct', '개선 비율 (%)', 1),
 ]);
