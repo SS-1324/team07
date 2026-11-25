@@ -13,5 +13,10 @@ ui_note(
     . 'OPS는 200타석 이상, ERA는 50이닝 이상인 계약이 대상입니다. '
     . 'KBO는 OPS·ERA로 조회할 수 있습니다. 몸값 1분위는 평균 연봉(AAV)이 가장 높은 그룹입니다.'
 );
-$metric=$f['metric']==='war'?ui_money('metric_value','WAR당 비용'):ui_number('metric_value',strtoupper($f['metric']),3);ui_table('계약 성과 순위',$rows,['metric_rank'=>'성과 순위','player_name'=>['선수','ui_player'],'to_team_name'=>'영입 구단','start_year'=>'계약 시작','seasons'=>'기록 시즌','metric_value'=>$metric,'aav'=>ui_money('aav','AAV'),'aav_rank'=>'몸값 순위','aav_quartile'=>'몸값 분위','metric_pct'=>'상위 %(0=1위)','group_size'=>'그룹 크기']);ui_table('몸값 4분위별 성과 — 상위 N 제한 전 전체 대상',analysis_ranking_quartiles($f),['aav_quartile'=>'분위','contracts'=>'계약 수','min_aav'=>ui_money('min_aav','최소 AAV'),'max_aav'=>ui_money('max_aav','최대 AAV'),'avg_aav'=>ui_money('avg_aav','평균 AAV'),'avg_metric'=>$f['metric']==='war'?ui_money('avg_metric','평균 WAR당 비용'):ui_number('avg_metric','평균 지표',3),'avg_rank_pct'=>ui_number('avg_rank_pct','평균 상위 %',1)]);
+$metric=$f['metric']==='war'?ui_money('metric_value','WAR당 비용'):ui_number('metric_value',strtoupper($f['metric']),3);ui_table('계약 성과 순위',$rows,['metric_rank'=>'성과 순위','player_name'=>['선수','ui_player'],'to_team_name'=>'영입 구단','start_year'=>'계약 시작','seasons'=>'기록 시즌','metric_value'=>$metric,'aav'=>ui_money('aav','AAV'),'aav_rank'=>'몸값 순위','aav_quartile'=>'몸값 분위','metric_pct'=>'상위 %(0=1위)','group_size'=>'그룹 크기']);
+ui_note('Good은 환산 WAR이 양수이고 같은 리그의 시즌당 WAR 상위 25%인 계약, Bad는 환산 WAR이 0 이하인 계약입니다. KBO는 WAR 기록이 없어 비율을 —로 표시합니다.');
+ui_table('몸값 4분위별 성과 — 상위 N 제한 전 전체 대상',analysis_ranking_quartiles($f),['aav_quartile'=>'분위','contracts'=>'계약 수','min_aav'=>ui_money('min_aav','최소 AAV'),'max_aav'=>ui_money('max_aav','최대 AAV'),'avg_aav'=>ui_money('avg_aav','평균 AAV'),'avg_metric'=>$f['metric']==='war'?ui_money('avg_metric','평균 WAR당 비용'):ui_number('avg_metric','평균 지표',3),'avg_rank_pct'=>ui_number('avg_rank_pct','평균 상위 %',1),
+    'good_pct' => ui_number('good_pct', 'Good 계약 (%)', 1),
+    'bad_pct' => ui_number('bad_pct', 'Bad 계약 (%)', 1),
+]);
 ui_end();

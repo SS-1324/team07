@@ -1,11 +1,13 @@
 <?php
 // backend/queries/analysis.php
-// 담당: 백엔드 신수연
+// 담당: 백엔드 신수연, DB 안서연
 // 고급 분석 4종 쿼리 (각각 별도 메뉴에서 사용)
 //   1. analysis_aggregate()       여러 열 GROUP BY + SUM/AVG/MAX/MIN
 //   2. analysis_rollup()          GROUP BY ... WITH ROLLUP (리그 → 구단 → 연도), analysis_drill_contracts() 로 드릴다운
 //   3. analysis_ranking()         RANK / NTILE / PERCENT_RANK, analysis_ranking_quartiles() 로 4분위별 요약
 //   4. analysis_window()          LAG / 누적 SUM / 이동 AVG / 같은 해 리그 내 RANK
+//      analysis_contract_compare() 계약 직전 2시즌 vs 계약 기간 성적 비교 (리그 안 RANK / PERCENT_RANK / AVG OVER),
+//      analysis_contract_compare_summary() 로 나이·역할 등 묶음별 요약
 //
 // 모든 함수는 사용자 입력을 ? 와 $params 로 넘긴다. ? 로 못 넘기는 것(묶을 열, 정렬 방향, 이동평균 구간)은
 // 이 파일 안의 허용 목록에서 고른 SQL 조각이나 정수로 고정한 값만 SQL 에 들어간다.
@@ -553,6 +555,178 @@ function analysis_window(string $playerId, int $yearFrom, int $yearTo, string $m
              ORDER BY w.year_id';
 
     return db_all($sql, [$playerId, $yearFrom, $yearTo]);
+}
+
+// =====================================================================================
+// 5. 계약 전후 성과 비교 (윈도우 메뉴에서 사용)
+// =====================================================================================
+// 계약마다 '계약 직전 2시즌'과 '계약 기간'의 시즌당 성적을 나란히 놓고 차이를 구한 뒤,
+// 윈도우 함수로 같은 리그 계약들 안에서 변화 순위·리그 평균 변화와 비교한다.
+//
+//   계약 전 : start_year - 2 ~ start_year - 1 중 기록이 있는 시즌 (MLB 는 DB 에 계약 2년 전부터만 기록이 있다)
+//             WAR 은 기록이 있는 시즌 수로 나눈다. 계약 전 빈 해는 다른 리그·마이너에 있었을 수 있어서 0 으로 채우지 않는다
+//   계약 중 : contract_eff 와 같은 기준 (eff_end 까지, 2020 환산, 겹치는 계약 정리).
+//             WAR 은 연봉이 나간 시즌 수(paid_seasons)로 나눈다 → 순위 화면의 war_per_season 과 같은 값
+//   OPS/ERA : 두 기간 모두 기록이 있는 시즌만으로 타석·이닝 가중 평균
+//
+// 해석할 때 주의:
+//   - FA 직전 시즌은 커리어 최고인 경우가 많아서(그래서 큰 계약을 받는다) 계약 후 평균으로 돌아오는 하락이 흔하다
+//   - 계약 기간에는 나이가 들고, 진행 중 계약은 앞쪽 시즌만 들어간다
+//   - KBO 는 WAR 이 없어서 WAR 비교는 MLB 만 나온다. KBO 는 OPS(타자)·ERA(투수)로 본다
+
+// 계약 전으로 보는 시즌 수 (정수 상수, SQL 에 그대로 들어간다)
+const CONTRACT_PRE_SEASONS = 2;
+
+// 비교 지표: 키 => [계약 전 값, 계약 중 값, 개선 방향(+1 높을수록 좋음 / -1 낮을수록 좋음), 대상 조건]
+// 대상 조건은 순위 화면과 같다: OPS 는 두 기간 모두 200타석 이상, ERA 는 두 기간 모두 50이닝 이상
+function compare_metric_sql(string $metric): array
+{
+    $metrics = [
+        'war' => ['ROUND(pre.war_adj / NULLIF(pre.seasons, 0), 2)', 'ROUND(cp.war_adj / NULLIF(cp.paid_seasons, 0), 2)', 1,
+                  'pre.war_adj IS NOT NULL AND cp.war_adj IS NOT NULL'],
+        'ops' => ['ROUND(pre.ops, 3)', 'ROUND(cp.ops, 3)', 1,  'pre.pa_ops >= 200 AND cp.pa_ops >= 200'],
+        'era' => ['ROUND(pre.era, 2)', 'ROUND(cp.era, 2)', -1, 'pre.ip >= 50 AND cp.ip >= 50'],
+    ];
+    return $metrics[$metric] ?? $metrics['war'];
+}
+
+// 공통 부분. [SQL, params] 를 돌려준다 (analysis_contract_compare, analysis_contract_compare_summary 가 사용)
+// 마지막 CTE 이름은 compared 이다.
+function contract_compare_base_sql(array $f): array
+{
+    $metric = $f['metric'] ?? 'war';
+    if (!in_array($metric, ['war', 'ops', 'era'], true)) {
+        $metric = 'war';
+    }
+    [$preSql, $inSql, $dir, $validSql] = compare_metric_sql($metric);
+    $preFrom = CONTRACT_PRE_SEASONS;   // 정수 상수
+
+    $sql = 'WITH ' . SQL_CTE_PS_YEAR . ', ' . SQL_CTE_PLAYER_ROLE . ', '
+                   . sql_cte_season_scale() . ', ' . SQL_CTE_CONTRACT_EFF . ',
+            pre AS (
+                SELECT c.contract_id,
+                       COUNT(y.year_id)                               AS seasons,
+                       SUM(y.war * COALESCE(sc.scale, 1))             AS war_adj,
+                       SUM(y.ops_pa) / NULLIF(SUM(y.pa_ops), 0)       AS ops,
+                       SUM(y.pa_ops)                                  AS pa_ops,
+                       SUM(y.era_ip) / NULLIF(SUM(y.ip), 0)           AS era,
+                       SUM(y.ip)                                      AS ip
+                  FROM fa_contracts c
+                  LEFT JOIN ps_year y       ON y.player_id = c.player_id
+                                           AND y.year_id BETWEEN c.start_year - ' . $preFrom . ' AND c.start_year - 1
+                  LEFT JOIN season_scale sc ON sc.league_id = y.league_id AND sc.year_id = y.year_id
+                 GROUP BY c.contract_id
+            ),
+            base AS (
+                SELECT c.contract_id, c.player_id, ' . SQL_PLAYER_NAME . ' AS player_name,
+                       tt.league_id, l.currency, tt.team_name AS to_team_name,
+                       c.start_year, c.end_year, c.years, c.aav, r.role,
+                       ' . sql_season_age('c.start_year') . ' AS age,
+                       pre.seasons AS pre_seasons, cp.seasons, cp.paid_seasons,
+                       ROUND(pre.war_adj / NULLIF(pre.seasons, 0), 2)    AS pre_war_ps,
+                       ROUND(cp.war_adj / NULLIF(cp.paid_seasons, 0), 2) AS in_war_ps,
+                       ROUND(pre.ops, 3) AS pre_ops, ROUND(cp.ops, 3) AS in_ops,
+                       ROUND(pre.era, 2) AS pre_era, ROUND(cp.era, 2) AS in_era,
+                       pre.pa_ops AS pre_pa, cp.pa_ops AS in_pa, ROUND(pre.ip, 1) AS pre_ip, ROUND(cp.ip, 1) AS in_ip,
+                       ' . $preSql . ' AS metric_pre,
+                       ' . $inSql . ' AS metric_in
+                  FROM fa_contracts c
+                  JOIN teams tt         ON tt.team_id = c.to_team_id
+                  JOIN leagues l        ON l.league_id = tt.league_id
+                  JOIN players p        ON p.player_id = c.player_id
+                  JOIN player_role r    ON r.player_id = c.player_id
+                  JOIN contract_eff cp  ON cp.contract_id = c.contract_id
+                  JOIN pre              ON pre.contract_id = c.contract_id
+                 WHERE ' . $validSql . ' AND pre.seasons >= 1 AND c.start_year BETWEEN ? AND ?';
+    $params = year_range((int) ($f['year_from'] ?? 2016), (int) ($f['year_to'] ?? 2024));
+
+    if (($f['league'] ?? '') !== '') {
+        $sql .= ' AND tt.league_id = ?';
+        $params[] = $f['league'];
+    }
+    if (($f['role'] ?? '') !== '') {
+        $sql .= ' AND r.role = ?';
+        $params[] = $f['role'];
+    }
+    // 최소 시즌 수 (계약 기간 쪽). 순위 화면과 같은 기준: war 는 연봉이 나간 시즌, ops/era 는 기록이 있는 시즌
+    $sql .= ' AND ' . ($metric === 'war' ? 'cp.paid_seasons' : 'cp.seasons') . ' >= ?';
+    $params[] = max(1, min(10, (int) ($f['min_seasons'] ?? 2)));
+
+    // improvement : 좋아진 정도. WAR·OPS 는 계약 중 - 계약 전, ERA 는 계약 전 - 계약 중 (양수면 좋아짐)
+    // 윈도우 함수는 같은 리그 안에서만 계산한다 (리그끼리 지표 수준이 다르다)
+    $sql .= '),
+            diffed AS (
+                SELECT base.*,
+                       ROUND(metric_in - metric_pre, 3)          AS metric_change,
+                       ROUND(' . $dir . ' * (metric_in - metric_pre), 3) AS improvement
+                  FROM base
+            ),
+            compared AS (
+                SELECT diffed.*,
+                       improvement > 0                                                              AS improved,
+                       RANK() OVER (PARTITION BY league_id ORDER BY improvement DESC)               AS change_rank,
+                       ROUND(100 * PERCENT_RANK() OVER (PARTITION BY league_id ORDER BY improvement DESC), 1) AS change_pct,
+                       COUNT(*) OVER (PARTITION BY league_id)                                       AS league_count,
+                       ROUND(AVG(metric_pre)    OVER (PARTITION BY league_id), 3)                   AS league_avg_pre,
+                       ROUND(AVG(metric_in)     OVER (PARTITION BY league_id), 3)                   AS league_avg_in,
+                       ROUND(AVG(metric_change) OVER (PARTITION BY league_id), 3)                   AS league_avg_change
+                  FROM diffed
+            )';
+    return [$sql, $params];
+}
+
+// 계약 전후 성과 비교 (계약별)
+//   $f 키: league('MLB'|'KBO'|''), year_from, year_to (계약 시작 연도), role('P'|'B'|''),
+//          metric('war'|'ops'|'era', 비교·정렬 기준), min_seasons(계약 기간 최소 시즌 수, 기본 2, 1~10)
+//   대상: 계약 전 기록이 1시즌 이상 있고 고른 지표의 조건을 두 기간 모두 채운 계약.
+//         war 는 WAR 이 있는 리그(MLB)만, ops 는 두 기간 모두 200타석 이상, era 는 두 기간 모두 50이닝 이상
+// 돌려주는 키: contract_id, player_id, player_name, league_id, currency, to_team_name, start_year, end_year, years,
+//             aav, role, age(계약 첫 시즌 나이, 6월 30일 기준),
+//             pre_seasons(계약 전 기록 시즌 수, 1~2), seasons(계약 중 기록 시즌 수), paid_seasons(계약 중 연봉 나간 시즌 수),
+//             pre_war_ps / in_war_ps (시즌당 환산 WAR, KBO 는 null), pre_ops / in_ops, pre_era / in_era,
+//             pre_pa / in_pa (OPS 가 있는 타석), pre_ip / in_ip (이닝),
+//             metric_pre / metric_in (고른 지표의 계약 전 / 계약 중 값),
+//             metric_change (계약 중 - 계약 전, 지표 그대로의 차이. ERA 는 음수가 좋아진 것),
+//             improvement (좋아진 정도, 양수면 좋아짐. ERA 는 부호를 뒤집은 값),
+//             improved (1 = 좋아짐, 0 = 같거나 나빠짐),
+//             change_rank (리그 안 개선 순위, 1 = 가장 좋아짐), change_pct (리그 안 상위 몇 %, 0 = 1등),
+//             league_count, league_avg_pre, league_avg_in, league_avg_change (같은 조건 리그 계약들의 평균)
+// 정렬: 리그 → 개선 순위
+function analysis_contract_compare(array $f): array
+{
+    [$sql, $params] = contract_compare_base_sql($f);
+    $sql .= ' SELECT * FROM compared ORDER BY league_id DESC, change_rank, aav DESC';
+    return db_all($sql, $params);
+}
+
+// 계약 전후 비교를 묶어서 요약 (집계 화면의 묶음 기준 중 일부를 쓴다)
+//   $f 키: analysis_contract_compare 와 같음 + group('role'|'age_band'|'years_band'|'move', 기본 'age_band')
+// 돌려주는 키: league_id, currency, group_key(고른 기준의 키), group_value(묶음 이름), contracts,
+//             avg_pre, avg_in, avg_change (고른 지표의 평균, 계약 단위 단순 평균),
+//             avg_improvement (좋아진 정도 평균, 양수면 평균적으로 좋아짐),
+//             improved_contracts (좋아진 계약 수), improved_pct (좋아진 계약 비율 %)
+function analysis_contract_compare_summary(array $f): array
+{
+    $options = aggregate_group_options();
+    $groupKey = in_array($f['group'] ?? '', ['role', 'age_band', 'years_band', 'move'], true) ? $f['group'] : 'age_band';
+    // 묶음 식은 base 에 없는 열(c, p, r)을 쓰므로 계약 ID 로 다시 붙인다
+    [$sql, $params] = contract_compare_base_sql($f);
+    $sql .= ' SELECT cm.league_id, MAX(cm.currency) AS currency, \'' . $groupKey . '\' AS group_key,
+                     ' . $options[$groupKey][1] . ' AS group_value,
+                     COUNT(*)                            AS contracts,
+                     ROUND(AVG(cm.metric_pre), 3)        AS avg_pre,
+                     ROUND(AVG(cm.metric_in), 3)         AS avg_in,
+                     ROUND(AVG(cm.metric_change), 3)     AS avg_change,
+                     ROUND(AVG(cm.improvement), 3)       AS avg_improvement,
+                     SUM(cm.improved)                    AS improved_contracts,
+                     ROUND(100 * AVG(cm.improved), 1)    AS improved_pct
+                FROM compared cm
+                JOIN fa_contracts c   ON c.contract_id = cm.contract_id
+                JOIN players p        ON p.player_id = c.player_id
+                JOIN player_role r    ON r.player_id = c.player_id
+               GROUP BY cm.league_id, ' . $options[$groupKey][1] . '
+               ORDER BY cm.league_id DESC, group_value';
+    return db_all($sql, $params);
 }
 
 // 분석 화면의 연도 select 범위 (계약 시작 연도 최소~최대)
